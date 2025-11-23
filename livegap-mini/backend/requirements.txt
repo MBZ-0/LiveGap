@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pydantic
+playwright
+httpx
+mangum
+openai
