@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, APIRouter
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from mangum import Mangum
@@ -24,6 +24,9 @@ except Exception as _e:
     print(f"[another.ai] Could not introspect event loop: {_e!r}")
 
 app = FastAPI(title="another.ai Mini API")
+
+# API router with /api prefix to align with CloudFront path routing
+api_router = APIRouter(prefix="/api")
 # Serve recorded videos (webm files) as static content
 try:
     from pathlib import Path
@@ -47,8 +50,13 @@ app.add_middleware(
 async def health():
     return {"status": "ok"}
 
+@api_router.get("/health")
+async def api_health():
+    return {"status": "ok"}
+
 
 @app.post("/run-reality-check", response_model=RunResponse)
+@api_router.post("/run-reality-check", response_model=RunResponse)
 async def run_reality_check_endpoint(req: RunRequest):
     # Single LLM agent mode only (heuristic removed)
     sites = load_sites()
@@ -73,4 +81,6 @@ async def run_reality_check_endpoint(req: RunRequest):
 
 
 # For AWS Lambda
+app.include_router(api_router)
+
 handler = Mangum(app)
