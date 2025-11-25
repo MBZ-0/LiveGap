@@ -1,0 +1,19 @@
+# Backend Docker build ignore
+# Exclude local Python virtualenvs
+.venv
+venv/
+
+# Exclude Node modules if present
+node_modules/
+
+# Exclude recorded videos
+app/videos/
+videos/
+
+# Common cache/noise (optional but harmless)
+__pycache__/
+*.py[cod]
+*.log
+.env
+.env.*
+.DS_Store
