@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 
-type Goal = "sign_up" | "book_demo" | "add_to_cart" | "extract_pricing";
+type Goal =
+  | "I’m trying to talk to sales — can you help me get in touch with someone?"
+  | "Can you find out how much this product costs?"
+  | "How do I create an account on this website?"
+  | "Where can I see job openings for this company?"
+  | "Where do I go if I need help or support on this website?";
 
 type SiteResult = {
   site_id: string;
@@ -15,7 +20,6 @@ type SiteResult = {
 
 type RunResponse = {
   goal: Goal;
-  mode: "heuristic" | "llm";
   overall_success_rate: number;
   total_sites: number;
   successful_sites: number;
@@ -32,9 +36,8 @@ if (!API_BASE) {
 console.log("[LiveGap Mini] API_BASE=", API_BASE);
 
 export default function HomePage() {
-  const [goal, setGoal] = useState<Goal>("extract_pricing");
+  const [goal, setGoal] = useState<Goal>("Can you find out how much this product costs?");
   const [loading, setLoading] = useState(false);
-  const [mode, setMode] = useState<"heuristic" | "llm">("heuristic");
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<RunResponse | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -53,7 +56,7 @@ export default function HomePage() {
       const res = await fetch(`${API_BASE}/run-reality-check`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, mode }),
+        body: JSON.stringify({ goal }),
       });
       if (!res.ok) {
         const text = await res.text();
@@ -103,30 +106,18 @@ export default function HomePage() {
                 value={goal}
                 onChange={(e) => setGoal(e.target.value as Goal)}
               >
-                <option value="extract_pricing">Extract pricing info</option>
-                <option value="sign_up">Sign up / create an account</option>
-                <option value="book_demo">Book a demo / talk to sales</option>
-                <option value="add_to_cart">Add a product to cart</option>
+                <option value="I’m trying to talk to sales — can you help me get in touch with someone?">I’m trying to talk to sales — can you help me get in touch with someone?</option>
+                <option value="Can you find out how much this product costs?">Can you find out how much this product costs?</option>
+                <option value="How do I create an account on this website?">How do I create an account on this website?</option>
+                <option value="Where can I see job openings for this company?">Where can I see job openings for this company?</option>
+                <option value="Where do I go if I need help or support on this website?">Where do I go if I need help or support on this website?</option>
               </select>
               <p className="text-xs text-slate-500">
                 We use a fixed internal agent as a benchmark and score each site
                 on whether it exposes clear cues for this goal.
               </p>
             </div>
-            <div className="flex-1 space-y-2">
-              <label className="text-xs font-medium uppercase text-slate-400">Mode</label>
-              <select
-                className="w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-sm outline-none focus:border-slate-400"
-                value={mode}
-                onChange={(e) => setMode(e.target.value as "heuristic" | "llm")}
-              >
-                <option value="heuristic">Heuristic (fast)</option>
-                <option value="llm">LLM (iterative)</option>
-              </select>
-              <p className="text-xs text-slate-500">
-                LLM mode runs multi-step planner loop (stubbed) per site.
-              </p>
-            </div>
+            {/* Mode control removed: always LLM planner */}
 
             <button
               onClick={runRealityCheck}
@@ -164,14 +155,9 @@ export default function HomePage() {
               <div className="text-xs text-slate-400">
                 <p>
                   Goal:{" "}
-                  <span className="font-semibold text-slate-200">
-                    {goal.replace("_", " ")}
-                  </span>
+                  <span className="font-semibold text-slate-200">{goal}</span>
                 </p>
-                <p>
-                  Mode:{" "}
-                  <span className="font-semibold text-slate-200">{mode}</span>
-                </p>
+                <p className="text-xs text-slate-500">Mode: LLM planner (heuristic removed)</p>
                 <p>
                   Successes:{" "}
                   <span className="text-emerald-400">

@@ -7,8 +7,14 @@ This subproject (`livegap-mini/`) is a minimal end-to-end demo:
 
 - Backend: FastAPI + simple Chromium Playwright "agent" + Lambda compatibility via Mangum.
 - Frontend: Next.js single page that triggers a run and displays per-site results.
-- Goals supported: `extract_pricing`, `sign_up`, `book_demo`, `add_to_cart`.
-- Modes: heuristic (fast keyword scan) and LLM (iterative planner stub) selectable in UI.
+- Goals supported (literal user utterances used verbatim when planning):
+	1. I’m trying to talk to sales — can you help me get in touch with someone?
+	2. Can you find out how much this product costs?
+	3. How do I create an account on this website?
+	4. Where can I see job openings for this company?
+	5. Where do I go if I need help or support on this website?
+
+	(Heuristic mode removed) Single LLM planner loop drives all runs.
 
 ### Directory Layout
 
@@ -56,8 +62,8 @@ Run endpoint (example):
 
 ```
 curl -X POST http://localhost:8000/run-reality-check \
-	-H "Content-Type: application/json" \
-	-d '{"goal": "extract_pricing"}'
+  -H "Content-Type: application/json" \
+  -d '{"goal": "Can you find out how much this product costs?"}'
 ```
 
 ### Frontend Setup (Local)
@@ -84,22 +90,20 @@ High-level steps:
 4. Expose `/run-reality-check` and `/health` routes.
 5. Set `NEXT_PUBLIC_API_BASE_URL` on the frontend to your API Gateway base URL.
 
-### Heuristic Judge vs LLM Planner
+### LLM Planner Loop
 
-Heuristic mode:
-`judge_success_from_html` + single-pass keyword scan and CTA click.
+The agent runs an iterative observe → plan → act → judge loop (max ~6 steps) using an LLM to decide the next action. Each plan step returns JSON `{action, target, reason}` where action ∈ `CLICK | SCROLL | TYPE | DONE`. After performing an action the agent evaluates simple success heuristics and halts early if satisfied.
 
-LLM mode (stub):
-Iterative loop (max ~6 steps) calling `plan_next_action(goal, url, text, recent_actions)` which returns JSON-like dict `{action, target, reason}`. Actions: CLICK | SCROLL | TYPE | DONE. After each action the agent re-observes the page and may declare success early. Replace the stub with a real LLM API response (OpenAI, Anthropic, local) by sending a prompt containing:
+Prompt template (conceptual):
 ```
 Goal: <goal>
 URL: <current_url>
 Page excerpt: <truncated_body_text>
 Recent: <last_actions>
-You can: CLICK(text), TYPE(text), SCROLL(amount), DONE(reason)
+Allowed: CLICK(text), TYPE(selector|text), SCROLL(amount_px), DONE(reason)
 Respond ONLY with JSON: {"action":"CLICK","target":"Book a demo","reason":"Found CTA"}
 ```
-Parse the model output and execute accordingly.
+The response is parsed; if parsing fails a minimal safe fallback action (e.g. SCROLL) is applied.
 
 ### Extending the Agent
 
@@ -135,7 +139,7 @@ From backend directory after starting uvicorn:
 ```
 python - <<'PY'
 import httpx, json
-resp = httpx.post('http://localhost:8000/run-reality-check', json={'goal': 'extract_pricing'})
+resp = httpx.post('http://localhost:8000/run-reality-check', json={'goal': 'Can you find out how much this product costs?'})
 print(resp.status_code)
 print(json.dumps(resp.json(), indent=2)[:500])
 PY
@@ -152,7 +156,7 @@ With the static mount now in place they are accessible at `GET /videos/<filename
 
 ### LLM Planner (Real API)
 
-Set `OPENAI_API_KEY` in `livegap-mini/backend/.env` (or environment) and optionally `OPENAI_MODEL` (default `gpt-4o-mini`). In LLM mode the planner will call OpenAI Chat Completions to decide actions returning JSON. If the key is missing or any error occurs it transparently falls back to heuristic planning.
+Set `OPENAI_API_KEY` in `livegap-mini/backend/.env` (or environment) and optionally `OPENAI_MODEL` (default `gpt-4o-mini`). The planner calls OpenAI Chat Completions to decide actions. If the key is missing or an error occurs it falls back to a minimal internal exploration (e.g. scrolling) — not the old heuristic mode.
 
 Environment vars:
 ```

@@ -5,10 +5,9 @@ from mangum import Mangum
 import asyncio
 import sys
 
-from .models import RunRequest, RunResponse, RunMode
-from .runner import run_reality_check
+from .models import RunRequest, RunResponse
 from .agent import run_llm_agent_on_site
-from .runner import Site  # dataclass reuse
+from .runner import Site, load_sites  # dataclass + loader
 
 # Windows asyncio subprocess fix for Playwright (requires selector loop for subprocesses).
 if sys.platform == "win32":
@@ -51,16 +50,12 @@ async def health():
 
 @app.post("/run-reality-check", response_model=RunResponse)
 async def run_reality_check_endpoint(req: RunRequest):
-    if req.mode == RunMode.LLM:
-        # LLM-driven agent loop (sequential for clarity)
-        from .runner import load_sites
-        sites = load_sites()
-        results = []
-        for site in sites:
-            r = await run_llm_agent_on_site(site, req.goal)
-            results.append(r)
-    else:
-        results = await run_reality_check(req.goal)
+    # Single LLM agent mode only (heuristic removed)
+    sites = load_sites()
+    results = []
+    for site in sites:
+        r = await run_llm_agent_on_site(site, req.goal)
+        results.append(r)
 
     total = len(results)
     successes = sum(1 for r in results if r.success)
@@ -69,7 +64,6 @@ async def run_reality_check_endpoint(req: RunRequest):
 
     return RunResponse(
         goal=req.goal,
-        mode=req.mode,
         overall_success_rate=success_rate,
         total_sites=total,
         successful_sites=successes,

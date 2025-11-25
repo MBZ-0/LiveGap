@@ -1,102 +1,77 @@
 from typing import Tuple, Dict, Any, List
 from .models import Goal
+from .success_config import SUCCESS_URLS
+from .url_matcher import normalize_url
 import os, json, re
 import httpx
 
 
+# Keyword sets per new natural-language goal (used for heuristic success + planning hints).
+GOAL_KEYWORDS: Dict[Goal, List[str]] = {
+    Goal.SALES_CONTACT: [
+        "sales", "contact sales", "talk to sales", "request a demo", "book a demo", "schedule a demo", "contact us"
+    ],
+    Goal.PRICING_INFO: [
+        "pricing", "plans", "price", "cost", "per month", "per user", "pricing plan"
+    ],
+    Goal.ACCOUNT_CREATION: [
+        "sign up", "signup", "create account", "register", "get started", "start free", "create your account"
+    ],
+    Goal.JOB_OPENINGS: [
+        "careers", "jobs", "open positions", "we're hiring", "hiring", "join our team"
+    ],
+    Goal.SUPPORT_HELP: [
+        "support", "help center", "help", "documentation", "docs", "knowledge base", "contact support"
+    ],
+}
+
+
 def judge_success_from_html(goal: Goal, html: str, url: str) -> Tuple[bool, str]:
-    """
-    v0 heuristic judge.
-    Replace this with an LLM call later.
-    Returns (success, reason).
-    """
     lower_html = html.lower()
-
-    if goal == Goal.EXTRACT_PRICING:
-        keywords = ["pricing", "plans", "per month", "per user", "plan"]
-        hits = [k for k in keywords if k in lower_html]
-        if hits:
-            return True, f"Found pricing-related keywords: {', '.join(hits[:3])}"
-        return False, "Could not find pricing-related keywords."
-
-    if goal == Goal.SIGN_UP:
-        keywords = ["sign up", "signup", "create account", "get started", "start free"]
-        hits = [k for k in keywords if k in lower_html]
-        if hits:
-            return True, f"Found signup-related CTA text: {', '.join(hits[:3])}"
-        return False, "Could not locate a clear signup CTA."
-
-    if goal == Goal.BOOK_DEMO:
-        keywords = ["book a demo", "schedule a demo", "request a demo", "talk to sales"]
-        hits = [k for k in keywords if k in lower_html]
-        if hits:
-            return True, f"Found demo-related CTA text: {', '.join(hits[:3])}"
-        return False, "Could not find demo-booking related CTAs."
-
-    if goal == Goal.ADD_TO_CART:
-        keywords = ["add to cart", "add to bag", "checkout", "buy now"]
-        hits = [k for k in keywords if k in lower_html]
-        if hits:
-            return True, f"Found ecommerce CTA text: {', '.join(hits[:3])}"
-        return False, "Could not find obvious add-to-cart or checkout CTAs."
-
-    return False, "Goal not recognized or not supported yet."
+    hits = [k for k in GOAL_KEYWORDS.get(goal, []) if k in lower_html]
+    if hits:
+        return True, f"Found related cues: {', '.join(hits[:4])}"
+    return False, "No obvious related cues detected"
 
 
-async def classify_success(page, goal: Goal) -> bool:
-    """Very simple heuristic success detector based on current page URL/content.
-    Replace later with real LLM reasoning.
-    """
-    url = page.url.lower()
-    content = (await page.content()).lower()
+async def classify_success(page, goal: Goal, site_id: str) -> bool:
+    """Success if normalized current URL appears in normalized configured success URLs."""
+    current = normalize_url(page.url)
+    allowed = SUCCESS_URLS.get(site_id, {}).get(goal, [])
+    normalized_allowed = [normalize_url(u) for u in allowed]
+    return current in normalized_allowed
 
-    if goal == Goal.BOOK_DEMO:
-        return any(k in url or k in content for k in ["calendly", "demo", "contact", "schedule"])
-    if goal == Goal.EXTRACT_PRICING:
-        return any(k in url or k in content for k in ["pricing", "plan", "plans", "subscription"])
-    if goal == Goal.SIGN_UP:
-        return any(k in url or k in content for k in ["signup", "sign-up", "register", "create-account", "createaccount"])
-    if goal == Goal.ADD_TO_CART:
-        return any(k in content for k in ["add to cart", "checkout", "buy now", "add to bag"]) or any(k in url for k in ["cart", "checkout"])
-    return False
-
-
-# --- LLM planner stubs ---
 
 ACTION_SET = ["CLICK", "SCROLL", "TYPE", "DONE"]
+
 
 def summarize_text(raw: str, max_chars: int = 800) -> str:
     cleaned = " ".join(raw.split())
     return cleaned[:max_chars]
 
 
-def heuristic_plan(goal: Goal, page_url: str, page_text: str, recent_actions: List[Dict[str, Any]], step_index: int, max_steps: int) -> Dict[str, Any]:
-    """Stub that imitates an LLM planner returning an action JSON.
-    Replace with real LLM call; keep interface identical.
-    """
+def heuristic_plan(
+    goal: Goal,
+    page_url: str,
+    page_text: str,
+    recent_actions: List[Dict[str, Any]],
+    step_index: int,
+    max_steps: int,
+) -> Dict[str, Any]:
     lower = page_text.lower()
-    # Goal-specific click intents
-    goal_to_keywords = {
-        Goal.BOOK_DEMO: ["book a demo", "schedule a demo", "talk to sales", "request a demo", "demo"],
-        Goal.EXTRACT_PRICING: ["pricing", "plans", "plan"],
-        Goal.SIGN_UP: ["sign up", "signup", "create account", "get started"],
-        Goal.ADD_TO_CART: ["add to cart", "buy now", "checkout"],
-    }
-    keywords = goal_to_keywords.get(goal, [])
-    for kw in keywords:
+    if step_index == 0:
+        return {"action": "SCROLL", "target": "800", "reason": "Initial scan — scroll"}
+    if step_index == 1:
+        return {"action": "SCROLL", "target": "1600", "reason": "Broaden view"}
+    for kw in GOAL_KEYWORDS.get(goal, []):
         if kw in lower:
-            return {"action": "CLICK", "target": kw, "reason": f"Found keyword '{kw}' in page text"}
-
-    # If halfway through attempts and no keyword, try scroll
-    if step_index < max_steps - 2:
-        return {"action": "SCROLL", "target": "1000", "reason": "Scrolling to reveal more content"}
-
-    # Final attempt: declare done failure
-    return {"action": "DONE", "target": "fail", "reason": "No relevant keyword found after exploration"}
+            return {"action": "CLICK", "target": kw, "reason": f"Found keyword '{kw}'"}
+    if step_index < max_steps - 1:
+        return {"action": "SCROLL", "target": "1000", "reason": "Explore further"}
+    return {"action": "DONE", "target": "fail", "reason": "No cues after multiple steps"}
 
 
 def _extract_json_object(text: str) -> Dict[str, Any] | None:
-    """Attempt to extract first JSON object from a model response."""
     match = re.search(r"\{.*?\}", text, re.DOTALL)
     if not match:
         return None
@@ -106,32 +81,35 @@ def _extract_json_object(text: str) -> Dict[str, Any] | None:
         return None
 
 
-def openai_plan(goal: Goal, page_url: str, page_text: str, recent_actions: List[Dict[str, Any]], step_index: int, max_steps: int) -> Dict[str, Any]:
+def openai_plan(
+    goal: Goal,
+    page_url: str,
+    page_text: str,
+    recent_actions: List[Dict[str, Any]],
+    step_index: int,
+    max_steps: int,
+) -> Dict[str, Any]:
     api_key = os.getenv("OPENAI_API_KEY") or os.getenv("OPENAI_KEY")
+    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     if not api_key:
+        print("[LLM] No OPENAI_API_KEY present; falling back to heuristic planner.")
         return heuristic_plan(goal, page_url, page_text, recent_actions, step_index, max_steps)
-
     summary = summarize_text(page_text, max_chars=1200)
     recent_str = "; ".join(
         f"{ra.get('action')}({(ra.get('target') or '')[:40]})" for ra in recent_actions[-4:]
     ) or "(none)"
     prompt = (
-        "You are controlling a browser. Choose the next action to achieve the goal.\n"
-        f"Goal: {goal.value}\nURL: {page_url}\nRecent: {recent_str}\n"
+        "You are controlling a browser to help a user. Choose the next action.\n"
+        f"User goal (literal, do not alter): {goal.value}\nURL: {page_url}\nRecent: {recent_str}\n"
         f"Page excerpt: {summary}\n"
-        "Actions allowed: CLICK(text), SCROLL(amount_px), TYPE(text), DONE(reason).\n"
-        "Respond ONLY with JSON: {\"action\":\"CLICK\",\"target\":\"Book a demo\",\"reason\":\"Found CTA\"}."
+        "Allowed actions: CLICK(text), SCROLL(px), TYPE(text), DONE(reason).\n"
+        "Respond ONLY with a single JSON object: {\"action\":\"CLICK\",\"target\":\"Book a demo\",\"reason\":\"Found CTA\"}"
     )
-
-    # Use minimal HTTP call to OpenAI Chat Completions (fallback if library not available)
+    print(f"[LLM] Calling OpenAI model={model} goal={goal.value} step={step_index}")
     try:
-        # Newer OpenAI API may use 'responses' or 'chat.completions'; try chat first.
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
         body = {
-            "model": os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            "model": model,
             "messages": [
                 {"role": "system", "content": "You output only JSON objects."},
                 {"role": "user", "content": prompt},
@@ -145,22 +123,27 @@ def openai_plan(goal: Goal, page_url: str, page_text: str, recent_actions: List[
             json=body,
             timeout=20.0,
         )
+        print(f"[LLM] OpenAI response status={resp.status_code}")
         resp.raise_for_status()
         data = resp.json()
         content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
         parsed = _extract_json_object(content)
         if not parsed:
+            print("[LLM] Parse failure -> heuristic fallback")
             return heuristic_plan(goal, page_url, page_text, recent_actions, step_index, max_steps)
         action = parsed.get("action")
         target = parsed.get("target")
         reason = parsed.get("reason", "")
         if action not in ACTION_SET:
+            print(f"[LLM] Invalid action '{action}' -> heuristic fallback")
             return heuristic_plan(goal, page_url, page_text, recent_actions, step_index, max_steps)
+        print(f"[LLM] Plan action={action} target={str(target)[:60]}")
         return {"action": action, "target": target, "reason": reason or "LLM decision"}
-    except Exception:
+    except Exception as e:
+        print(f"[LLM] Exception during OpenAI call: {e.__class__.__name__}: {e} -> heuristic fallback")
         return heuristic_plan(goal, page_url, page_text, recent_actions, step_index, max_steps)
 
 
 def plan_next_action(goal: Goal, page_url: str, page_text: str, recent_actions: List[Dict[str, Any]], step_index: int, max_steps: int) -> Dict[str, Any]:
-    """Planner selecting OpenAI if key present else heuristic."""
+    """Single planner selecting OpenAI if key present else heuristic."""
     return openai_plan(goal, page_url, page_text, recent_actions, step_index, max_steps)

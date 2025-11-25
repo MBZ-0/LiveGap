@@ -1,12 +1,12 @@
 [
-  { "id": "shopify-partners", "name": "Shopify Partners", "url": "https://www.shopify.com/partners" },
-  { "id": "linear-pricing", "name": "Linear Pricing", "url": "https://linear.app/pricing" },
-  { "id": "notion-signup", "name": "Notion Signup", "url": "https://www.notion.so/signup" },
-  { "id": "calendly-demo", "name": "Calendly Demo", "url": "https://calendly.com/demo" },
-  { "id": "irs-w9", "name": "IRS W-9", "url": "https://www.irs.gov/forms-pubs/about-form-w-9" },
-  { "id": "airtable-signup", "name": "Airtable Signup", "url": "https://airtable.com/signup" },
-  { "id": "ramp-apply", "name": "Ramp Apply", "url": "https://www.ramp.com/apply" },
-  { "id": "dmv-appointment", "name": "DMV Appointment", "url": "https://www.dmv.ca.gov/portal/make-an-appointment/" },
-  { "id": "gsuite-signup", "name": "Google Workspace", "url": "https://workspace.google.com/business/signup" },
-  { "id": "attio-demo", "name": "Attio Demo", "url": "https://attio.com/demo" }
+  { "id": "intercom",   "name": "Intercom",   "url": "https://www.intercom.com" },
+  { "id": "hubspot",    "name": "HubSpot",    "url": "https://www.hubspot.com" },
+  { "id": "asana",      "name": "Asana",      "url": "https://asana.com" },
+  { "id": "calendly",   "name": "Calendly",   "url": "https://calendly.com" },
+  { "id": "notion",     "name": "Notion",     "url": "https://www.notion.so" },
+  { "id": "airtable",   "name": "Airtable",   "url": "https://airtable.com" },
+  { "id": "zendesk",    "name": "Zendesk",    "url": "https://www.zendesk.com" },
+  { "id": "atlassian",  "name": "Atlassian",  "url": "https://www.atlassian.com" },
+  { "id": "monday",     "name": "Monday.com", "url": "https://monday.com" },
+  { "id": "slack",      "name": "Slack",      "url": "https://slack.com" }
 ]

@@ -4,20 +4,15 @@ from pydantic import BaseModel
 
 
 class Goal(str, Enum):
-    SIGN_UP = "sign_up"
-    BOOK_DEMO = "book_demo"
-    ADD_TO_CART = "add_to_cart"
-    EXTRACT_PRICING = "extract_pricing"
-
-
-class RunMode(str, Enum):
-    HEURISTIC = "heuristic"
-    LLM = "llm"
+    SALES_CONTACT = "I’m trying to talk to sales — can you help me get in touch with someone?"
+    PRICING_INFO = "Can you find out how much this product costs?"
+    ACCOUNT_CREATION = "How do I create an account on this website?"
+    JOB_OPENINGS = "Where can I see job openings for this company?"
+    SUPPORT_HELP = "Where do I go if I need help or support on this website?"
 
 
 class RunRequest(BaseModel):
     goal: Goal
-    mode: RunMode = RunMode.HEURISTIC  # selects agent style
     # repo_url: Optional[str] = None  # reserved for future
 
 
@@ -42,7 +37,6 @@ class SiteResult(BaseModel):
 
 class RunResponse(BaseModel):
     goal: Goal
-    mode: RunMode
     overall_success_rate: float  # 0–100
     total_sites: int
     successful_sites: int
