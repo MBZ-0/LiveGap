@@ -39,11 +39,9 @@ type Step = {
   done: boolean;
 };
 
-// Resolve API base from env; add fallback + debug exposure.
-let API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
-if (!API_BASE) {
-  API_BASE = "http://localhost:8000"; // fallback if env missing
-}
+// Resolve API base (relative /api when deployed behind CloudFront → EC2 proxy).
+// Prefer NEXT_PUBLIC_API_BASE, fallback to "/api" to avoid hardcoding origin IPs.
+let API_BASE = (process.env.NEXT_PUBLIC_API_BASE || "/api").replace(/\/$/, "");
 // eslint-disable-next-line no-console
 console.log("[another.ai Mini] API_BASE=", API_BASE);
 
