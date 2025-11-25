@@ -19,11 +19,11 @@ if sys.platform == "win32":
 # Debug: print loop policy and loop implementation once at import.
 try:
     loop = asyncio.get_event_loop()
-    print(f"[LiveGap] Event loop policy: {type(asyncio.get_event_loop_policy()).__name__}; loop: {type(loop).__name__}")
+    print(f"[another.ai] Event loop policy: {type(asyncio.get_event_loop_policy()).__name__}; loop: {type(loop).__name__}")
 except Exception as _e:
-    print(f"[LiveGap] Could not introspect event loop: {_e!r}")
+    print(f"[another.ai] Could not introspect event loop: {_e!r}")
 
-app = FastAPI(title="LiveGap Mini API")
+app = FastAPI(title="another.ai Mini API")
 # Serve recorded videos (webm files) as static content
 try:
     from pathlib import Path
@@ -31,7 +31,7 @@ try:
     if videos_dir.exists():
         app.mount("/videos", StaticFiles(directory=str(videos_dir)), name="videos")
 except Exception as _mount_err:
-    print(f"[LiveGap] Warning: could not mount /videos static directory: {_mount_err!r}")
+    print(f"[another.ai] Warning: could not mount /videos static directory: {_mount_err!r}")
 
 # CORS: allow local dev + Amplify/etc.
 app.add_middleware(

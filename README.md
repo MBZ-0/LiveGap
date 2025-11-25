@@ -1,7 +1,7 @@
-# LiveGap
+# another.ai
 See how badly your AI agent fails on real websites.
 
-## LiveGap Mini
+## another.ai Mini
 
 This subproject (`livegap-mini/`) is a minimal end-to-end demo:
 
@@ -150,7 +150,7 @@ PY
 Internal prototype; no license specified yet. Add one before sharing publicly.
 
 ---
-LiveGap Mini baseline complete. Iterate from here.
+another.ai Mini baseline complete. Iterate from here.
 Videos are stored in `livegap-mini/backend/app/videos/` (git-ignored by default). Serve them statically (e.g. add FastAPI StaticFiles) or upload to S3 for production.
 With the static mount now in place they are accessible at `GET /videos/<filename>.webm` and the frontend builds a full URL as `${NEXT_PUBLIC_API_BASE_URL}/videos/<filename>.webm` for playback in an HTML5 `<video>` element.
 

@@ -17,9 +17,9 @@ def main():
   if sys.platform == "win32":
     try:
       asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-      print("[LiveGap] Applied WindowsSelectorEventLoopPolicy before uvicorn run.")
+      print("[another.ai] Applied WindowsSelectorEventLoopPolicy before uvicorn run.")
     except Exception as e:
-      print(f"[LiveGap] Failed to set selector loop policy: {e!r}")
+      print(f"[another.ai] Failed to set selector loop policy: {e!r}")
 
   config = uvicorn.Config(
     "app.main:app",
