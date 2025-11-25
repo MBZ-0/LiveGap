@@ -1,6 +1,6 @@
 from typing import Tuple, Dict, Any, List
 from .models import Goal
-from .success_config import SUCCESS_URLS
+from .success_config import get_success_urls
 from .url_matcher import normalize_url
 import os, json, re
 import httpx
@@ -8,20 +8,20 @@ import httpx
 
 # Keyword sets per new natural-language goal (used for heuristic success + planning hints).
 GOAL_KEYWORDS: Dict[Goal, List[str]] = {
-    Goal.SALES_CONTACT: [
+    Goal.TALK_TO_SALES: [
         "sales", "contact sales", "talk to sales", "request a demo", "book a demo", "schedule a demo", "contact us"
     ],
-    Goal.PRICING_INFO: [
+    Goal.PRICING: [
         "pricing", "plans", "price", "cost", "per month", "per user", "pricing plan"
     ],
-    Goal.ACCOUNT_CREATION: [
+    Goal.SIGN_UP: [
         "sign up", "signup", "create account", "register", "get started", "start free", "create your account"
     ],
-    Goal.JOB_OPENINGS: [
-        "careers", "jobs", "open positions", "we're hiring", "hiring", "join our team"
-    ],
-    Goal.SUPPORT_HELP: [
+    Goal.HELP: [
         "support", "help center", "help", "documentation", "docs", "knowledge base", "contact support"
+    ],
+    Goal.CUSTOMERS: [
+        "customers", "customer stories", "case studies", "testimonials"
     ],
 }
 
@@ -37,9 +37,8 @@ def judge_success_from_html(goal: Goal, html: str, url: str) -> Tuple[bool, str]
 async def classify_success(page, goal: Goal, site_id: str) -> bool:
     """Success if normalized current URL appears in normalized configured success URLs."""
     current = normalize_url(page.url)
-    allowed = SUCCESS_URLS.get(site_id, {}).get(goal, [])
-    normalized_allowed = [normalize_url(u) for u in allowed]
-    return current in normalized_allowed
+    allowed = [normalize_url(u) for u in get_success_urls(site_id, goal)]
+    return current in allowed
 
 
 ACTION_SET = ["CLICK", "SCROLL", "TYPE", "DONE"]

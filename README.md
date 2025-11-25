@@ -168,3 +168,37 @@ OPENAI_ENDPOINT=https://api.openai.com/v1/chat/completions  # override if needed
 Planner response must be a JSON object with fields: `action` (CLICK|SCROLL|TYPE|DONE), `target` (string or null), `reason`.
 
 Error handling: If JSON parse fails or action unknown, the system reverts to heuristic step for that iteration.
+
+### Declarative World Configuration
+
+The list of target sites and their canonical success URLs now live in a single YAML file:
+
+`livegap-mini/backend/config/sites.yaml`
+
+Each entry defines:
+- `id`: stable identifier (used internally and in responses)
+- `name`: human display name
+- `start_url`: initial navigation URL the agent loads
+- `success`: mapping from goal enum name (lowercased: `talk_to_sales`, `pricing`, `sign_up`, `help`, `customers`) to a list of success URLs
+
+Example snippet:
+```yaml
+sites:
+	- id: "intercom"
+		name: "Intercom"
+		start_url: "https://www.intercom.com/suite"
+		success:
+			pricing:
+				- "https://www.intercom.com/pricing"
+			sign_up:
+				- "https://app.intercom.com/admins/sign_up"
+```
+
+On startup the backend loads and caches this configuration. Updating success criteria or adding a site only requires editing YAML (then restarting the backend if not running with auto-reload). No Python code changes are needed for these adjustments.
+
+To add a new site:
+1. Append a new block to `sites.yaml`.
+2. Restart backend (`uvicorn app.main:app --reload`).
+3. Run the reality check again.
+
+The agent's report narrative now reflects outcomes based on these declarative URLs, improving transparency and demo storytelling.

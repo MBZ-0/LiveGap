@@ -4,16 +4,15 @@ from pydantic import BaseModel
 
 
 class Goal(str, Enum):
-    SALES_CONTACT = "I’m trying to talk to sales — can you help me get in touch with someone?"
-    PRICING_INFO = "Can you find out how much this product costs?"
-    ACCOUNT_CREATION = "How do I create an account on this website?"
-    JOB_OPENINGS = "Where can I see job openings for this company?"
-    SUPPORT_HELP = "Where do I go if I need help or support on this website?"
+    TALK_TO_SALES = "I’m trying to talk to sales — can you help me reach the sales team?"
+    PRICING = "Can you show me the pricing or plans for this company?"
+    SIGN_UP = "How do I create an account or get started?"
+    HELP = "Where can I find documentation or help resources?"
+    CUSTOMERS = "Can you show me what customers say about this product?"
 
 
 class RunRequest(BaseModel):
     goal: Goal
-    # repo_url: Optional[str] = None  # reserved for future
 
 
 class Step(BaseModel):
@@ -21,6 +20,7 @@ class Step(BaseModel):
     action: str
     target: str | None = None
     observation: str | None = None
+    reasoning: str | None = None
     succeeded: bool | None = None
     done: bool = False
 
@@ -33,6 +33,7 @@ class SiteResult(BaseModel):
     reason: str
     video_url: str | None = None
     steps: List[Step] | None = None  # populated in LLM mode
+    report: str | None = None  # human-readable markdown report
 
 
 class RunResponse(BaseModel):

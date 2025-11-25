@@ -3,11 +3,11 @@
 import { useState } from "react";
 
 type Goal =
-  | "I’m trying to talk to sales — can you help me get in touch with someone?"
-  | "Can you find out how much this product costs?"
-  | "How do I create an account on this website?"
-  | "Where can I see job openings for this company?"
-  | "Where do I go if I need help or support on this website?";
+  | "I’m trying to talk to sales — can you help me reach the sales team?"
+  | "Can you show me the pricing or plans for this company?"
+  | "How do I create an account or get started?"
+  | "Where can I find documentation or help resources?"
+  | "Can you show me what customers say about this product?";
 
 type SiteResult = {
   site_id: string;
@@ -16,6 +16,8 @@ type SiteResult = {
   success: boolean;
   reason: string;
   video_url?: string | null;
+  steps?: Step[] | null;
+  report?: string | null;
 };
 
 type RunResponse = {
@@ -27,6 +29,16 @@ type RunResponse = {
   results: SiteResult[];
 };
 
+type Step = {
+  index: number;
+  action: string;
+  target?: string | null;
+  observation?: string | null;
+  reasoning?: string | null;
+  succeeded?: boolean | null;
+  done: boolean;
+};
+
 // Resolve API base from env; add fallback + debug exposure.
 let API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "").replace(/\/$/, "");
 if (!API_BASE) {
@@ -36,16 +48,29 @@ if (!API_BASE) {
 console.log("[LiveGap Mini] API_BASE=", API_BASE);
 
 export default function HomePage() {
-  const [goal, setGoal] = useState<Goal>("Can you find out how much this product costs?");
+  const [goal, setGoal] = useState<Goal>("Can you show me the pricing or plans for this company?");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<RunResponse | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [reportText, setReportText] = useState<string | null>(null);
+  const [reportSiteName, setReportSiteName] = useState<string | null>(null);
   function openVideo(url?: string | null) {
     if (url) setVideoUrl(url);
   }
   function closeVideo() {
     setVideoUrl(null);
+  }
+
+  function openReport(r: SiteResult) {
+    if (r.report) {
+      setReportText(r.report);
+      setReportSiteName(r.site_name);
+    }
+  }
+  function closeReport() {
+    setReportText(null);
+    setReportSiteName(null);
   }
 
   async function runRealityCheck() {
@@ -106,11 +131,11 @@ export default function HomePage() {
                 value={goal}
                 onChange={(e) => setGoal(e.target.value as Goal)}
               >
-                <option value="I’m trying to talk to sales — can you help me get in touch with someone?">I’m trying to talk to sales — can you help me get in touch with someone?</option>
-                <option value="Can you find out how much this product costs?">Can you find out how much this product costs?</option>
-                <option value="How do I create an account on this website?">How do I create an account on this website?</option>
-                <option value="Where can I see job openings for this company?">Where can I see job openings for this company?</option>
-                <option value="Where do I go if I need help or support on this website?">Where do I go if I need help or support on this website?</option>
+                <option value="I’m trying to talk to sales — can you help me reach the sales team?">I’m trying to talk to sales — can you help me reach the sales team?</option>
+                <option value="Can you show me the pricing or plans for this company?">Can you show me the pricing or plans for this company?</option>
+                <option value="How do I create an account or get started?">How do I create an account or get started?</option>
+                <option value="Where can I find documentation or help resources?">Where can I find documentation or help resources?</option>
+                <option value="Can you show me what customers say about this product?">Can you show me what customers say about this product?</option>
               </select>
               <p className="text-xs text-slate-500">
                 We use a fixed internal agent as a benchmark and score each site
@@ -181,6 +206,7 @@ export default function HomePage() {
                     <th className="px-4 py-3 text-left">Result</th>
                     <th className="px-4 py-3 text-left">Reason</th>
                     <th className="px-4 py-3 text-left">Video</th>
+                    <th className="px-4 py-3 text-left">Report</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -226,21 +252,26 @@ export default function HomePage() {
                           <span className="text-slate-600">—</span>
                         )}
                       </td>
+                      <td className="px-4 py-3 text-xs">
+                        {r.report ? (
+                          <button
+                            type="button"
+                            onClick={() => openReport(r)}
+                            className="underline decoration-dotted underline-offset-2 text-slate-400 hover:text-slate-200"
+                          >
+                            report
+                          </button>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
 
-            {/* Raw JSON (dev view) */}
-            <details className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 text-xs text-slate-300">
-              <summary className="cursor-pointer text-slate-200">
-                Developer view (raw JSON)
-              </summary>
-              <pre className="mt-3 max-h-80 overflow-auto text-[11px] leading-relaxed">
-                {JSON.stringify(data, null, 2)}
-              </pre>
-            </details>
+            {/* Steps Modal trigger handled above; render modal outside */}
           </section>
         )}
       </div>
@@ -265,6 +296,26 @@ export default function HomePage() {
             >
               Your browser does not support HTML5 video.
             </video>
+          </div>
+        </div>
+      )}
+      {/* Steps modal removed: reports supersede granular step table */}
+      {reportText && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-4xl rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-sm font-medium text-slate-200">Report – {reportSiteName}</h2>
+              <button
+                onClick={closeReport}
+                className="rounded-md bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+              >
+                Close
+              </button>
+            </div>
+            <div className="max-h-[60vh] overflow-auto rounded-lg border border-slate-800 bg-slate-950/40 p-4 text-xs leading-relaxed">
+              {/* Render markdown naïvely; could integrate a parser later */}
+              <pre className="whitespace-pre-wrap font-mono text-[11px] text-slate-200">{reportText}</pre>
+            </div>
           </div>
         </div>
       )}

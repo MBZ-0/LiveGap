@@ -1,0 +1,138 @@
+sites:
+  - id: "intercom"
+    name: "Intercom"
+    start_url: "https://www.intercom.com/suite"
+    success:
+      talk_to_sales:
+        - "https://www.intercom.com/contact-sales"
+      pricing:
+        - "https://www.intercom.com/pricing"
+      sign_up:
+        - "https://app.intercom.com/admins/sign_up"
+      help:
+        - "https://www.intercom.com/help"
+      customers:
+        - "https://www.intercom.com/customers"
+  - id: "hubspot"
+    name: "HubSpot"
+    start_url: "https://www.hubspot.com/"
+    success:
+      talk_to_sales:
+        - "https://offers.hubspot.com/contact-sales"
+      pricing:
+        - "https://www.hubspot.com/pricing"
+      sign_up:
+        - "https://app.hubspot.com/signup-hubspot"
+      help:
+        - "https://help.hubspot.com"
+      customers:
+        - "https://www.hubspot.com/case-studies"
+  - id: "asana"
+    name: "Asana"
+    start_url: "https://asana.com/"
+    success:
+      talk_to_sales:
+        - "https://asana.com/sales"
+      pricing:
+        - "https://asana.com/pricing"
+      sign_up:
+        - "https://asana.com/create-account"
+      help:
+        - "https://help.asana.com"
+      customers:
+        - "https://asana.com/customers"
+  - id: "calendly"
+    name: "Calendly"
+    start_url: "https://calendly.com/"
+    success:
+      talk_to_sales:
+        - "https://calendly.com/contact"
+      pricing:
+        - "https://calendly.com/pricing"
+      sign_up:
+        - "https://calendly.com/signup"
+      help:
+        - "https://help.calendly.com/hc"
+      customers:
+        - "https://calendly.com/customers"
+  - id: "notion"
+    name: "Notion"
+    start_url: "https://www.notion.so/"
+    success:
+      talk_to_sales:
+        - "https://www.notion.com/contact-sales"
+      pricing:
+        - "https://www.notion.com/pricing"
+      sign_up:
+        - "https://www.notion.so/signup"
+      help:
+        - "https://www.notion.com/help"
+      customers: []
+  - id: "airtable"
+    name: "Airtable"
+    start_url: "https://www.airtable.com/"
+    success:
+      talk_to_sales:
+        - "https://www.airtable.com/contact-sales"
+      pricing:
+        - "https://airtable.com/pricing"
+      sign_up:
+        - "https://airtable.com/signup"
+      help:
+        - "https://support.airtable.com"
+      customers:
+        - "https://www.airtable.com/customer-stories"
+  - id: "zendesk"
+    name: "Zendesk"
+    start_url: "https://www.zendesk.com/"
+    success:
+      talk_to_sales:
+        - "https://www.zendesk.com/contact"
+      pricing:
+        - "https://www.zendesk.com/pricing"
+      sign_up:
+        - "https://www.zendesk.com/register"
+      help:
+        - "https://support.zendesk.com/hc"
+      customers:
+        - "https://www.zendesk.com/why-zendesk/customers"
+  - id: "atlassian"
+    name: "Atlassian"
+    start_url: "https://www.atlassian.com/"
+    success:
+      talk_to_sales: []
+      pricing:
+        - "https://www.atlassian.com/software/jira/pricing"
+      sign_up:
+        - "https://www.atlassian.com/try/cloud/signup"
+      help:
+        - "https://support.atlassian.com"
+      customers: []
+  - id: "monday"
+    name: "Monday.com"
+    start_url: "https://monday.com/"
+    success:
+      talk_to_sales:
+        - "https://monday.com/sales/contact-us"
+      pricing:
+        - "https://monday.com/pricing"
+      sign_up:
+        - "https://auth.monday.com/users/sign_up_new"
+      help:
+        - "https://support.monday.com/hc"
+      customers:
+        - "https://monday.com/w/customer-stories"
+  - id: "slack"
+    name: "Slack"
+    start_url: "https://slack.com/"
+    success:
+      talk_to_sales:
+        - "https://slack.com/contact-sales"
+      pricing:
+        - "https://slack.com/pricing"
+      sign_up:
+        - "https://slack.com/get-started"
+      help:
+        - "https://slack.com/help"
+      customers:
+        - "https://slack.com/customer-stories"
