@@ -4,6 +4,11 @@ from fastapi.staticfiles import StaticFiles
 from mangum import Mangum
 import asyncio
 import sys
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from .models import RunRequest, RunResponse
 from .agent import run_llm_agent_on_site
@@ -59,25 +64,45 @@ async def api_health():
 @api_router.post("/run-reality-check", response_model=RunResponse)
 async def run_reality_check_endpoint(req: RunRequest):
     # Single LLM agent mode only (heuristic removed)
-    sites = load_sites()
-    results = []
-    for site in sites:
-        r = await run_llm_agent_on_site(site, req.goal)
-        results.append(r)
+    try:
+        print(f"[API] Starting reality check for goal: {req.goal}")
+        sites = load_sites()
+        # Limit sites for testing if env var is set
+        max_sites = int(os.getenv("MAX_SITES", "0"))
+        if max_sites > 0:
+            sites = sites[:max_sites]
+            print(f"[API] Limited to first {max_sites} sites for testing")
+        results = []
+        for idx, site in enumerate(sites, 1):
+            print(f"[API] Processing site {idx}/{len(sites)}: {site.id}")
+            r = await run_llm_agent_on_site(site, req.goal)
+            results.append(r)
 
-    total = len(results)
-    successes = sum(1 for r in results if r.success)
-    failed = total - successes
-    success_rate = (successes / total * 100.0) if total > 0 else 0.0
+        total = len(results)
+        successes = sum(1 for r in results if r.success)
+        failed = total - successes
+        success_rate = (successes / total * 100.0) if total > 0 else 0.0
 
-    return RunResponse(
-        goal=req.goal,
-        overall_success_rate=success_rate,
-        total_sites=total,
-        successful_sites=successes,
-        failed_sites=failed,
-        results=results,
-    )
+        response = RunResponse(
+            goal=req.goal,
+            overall_success_rate=success_rate,
+            total_sites=total,
+            successful_sites=successes,
+            failed_sites=failed,
+            results=results,
+        )
+        print(f"[API] Completed reality check. Success rate: {success_rate:.1f}% ({successes}/{total})")
+        print(f"[API] Response contains {len(results)} results")
+        # Check response size
+        import json
+        response_json = response.model_dump_json()
+        print(f"[API] Response size: {len(response_json)} bytes ({len(response_json)/1024:.1f} KB)")
+        return response
+    except Exception as e:
+        print(f"[API] ERROR in run_reality_check_endpoint: {e!r}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 # For AWS Lambda

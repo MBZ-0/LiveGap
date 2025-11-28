@@ -6,3 +6,4 @@ httpx
 mangum
 openai
 PyYAML
+python-dotenv

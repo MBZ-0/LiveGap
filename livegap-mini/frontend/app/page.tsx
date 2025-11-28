@@ -40,8 +40,9 @@ type Step = {
 };
 
 // Resolve API base (relative /api when deployed behind CloudFront → EC2 proxy).
-// Prefer NEXT_PUBLIC_API_BASE, fallback to "/api" to avoid hardcoding origin IPs.
-let API_BASE = (process.env.NEXT_PUBLIC_API_BASE || "/api").replace(/\/$/, "");
+// Prefer NEXT_PUBLIC_API_BASE, fallback to direct backend URL for development.
+let API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:8000/api";
+const BACKEND_BASE = API_BASE.replace(/\/api$/, ""); // Remove /api suffix for video URLs
 // eslint-disable-next-line no-console
 console.log("[another.ai Mini] API_BASE=", API_BASE);
 
@@ -168,10 +169,6 @@ export default function HomePage() {
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded bg-red-500/90 flex items-center justify-center text-xs font-bold tracking-wide">A</div>
           <span className="text-sm font-semibold tracking-wide">another.ai</span>
-        </div>
-        <div className="hidden md:flex items-center gap-4 text-[11px] text-slate-400">
-          <span>API Base:</span>
-          <code className="text-[11px] text-slate-300">{API_BASE}</code>
         </div>
       </header>
       {/* Body layout */}
@@ -389,7 +386,7 @@ export default function HomePage() {
               className="w-full rounded-md bg-black"
               controls
               autoPlay
-              src={`${API_BASE}${videoUrl}`}
+              src={`${BACKEND_BASE}${videoUrl}`}
             >
               Your browser does not support HTML5 video.
             </video>
