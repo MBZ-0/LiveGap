@@ -72,11 +72,20 @@ async def run_reality_check_endpoint(req: RunRequest):
         if max_sites > 0:
             sites = sites[:max_sites]
             print(f"[API] Limited to first {max_sites} sites for testing")
-        results = []
-        for idx, site in enumerate(sites, 1):
-            print(f"[API] Processing site {idx}/{len(sites)}: {site.id}")
-            r = await run_llm_agent_on_site(site, req.goal)
-            results.append(r)
+        
+        # Run sites in parallel with concurrency limit
+        max_concurrent = int(os.getenv("MAX_CONCURRENT_SITES", "3"))
+        semaphore = asyncio.Semaphore(max_concurrent)
+        print(f"[API] Running up to {max_concurrent} sites concurrently")
+
+        async def run_for_site(idx: int, site: Site):
+            async with semaphore:
+                print(f"[API] Processing site {idx}/{len(sites)}: {site.id}")
+                return await run_llm_agent_on_site(site, req.goal)
+
+        # Run all sites concurrently (limited by semaphore)
+        tasks = [run_for_site(idx, site) for idx, site in enumerate(sites, 1)]
+        results = await asyncio.gather(*tasks)
 
         total = len(results)
         successes = sum(1 for r in results if r.success)
@@ -89,7 +98,7 @@ async def run_reality_check_endpoint(req: RunRequest):
             total_sites=total,
             successful_sites=successes,
             failed_sites=failed,
-            results=results,
+            results=list(results),
         )
         print(f"[API] Completed reality check. Success rate: {success_rate:.1f}% ({successes}/{total})")
         print(f"[API] Response contains {len(results)} results")

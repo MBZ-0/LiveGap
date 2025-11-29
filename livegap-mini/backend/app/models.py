@@ -23,6 +23,10 @@ class Step(BaseModel):
     reasoning: str | None = None
     succeeded: bool | None = None
     done: bool = False
+    url_before: str | None = None
+    url_after: str | None = None
+    duration_ms: int | None = None
+    error_type: str | None = None
 
 
 class SiteResult(BaseModel):

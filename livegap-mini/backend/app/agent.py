@@ -16,27 +16,76 @@ def render_report(site: Site, goal: Goal, result: SiteResult) -> str:
     """Produce a human-readable markdown narrative of the agent's attempt."""
     lines: list[str] = []
     lines.append(f"# {site.name} — Goal: {goal.value}")
-    lines.append(f"**Final Result:** {'SUCCESS' if result.success else 'FAILURE'}")
+    lines.append(f"**Final Result:** {'✅ SUCCESS' if result.success else '❌ FAILURE'}")
     lines.append("")
+    
+    # Performance summary
+    total_steps = len(result.steps or [])
+    total_time = sum(s.duration_ms or 0 for s in (result.steps or [])) / 1000.0
+    lines.append("## Summary")
+    lines.append(f"- **Steps taken:** {total_steps}")
+    if total_time > 0:
+        lines.append(f"- **Total time:** {total_time:.1f}s")
+    lines.append(f"- **Starting URL:** {site.url}")
+    lines.append("")
+    
+    # Step details
+    lines.append("## Step-by-Step Execution")
     for step in (result.steps or []):
-        lines.append(f"### Step {step.index + 1}")
-        lines.append(f"**Action:** {step.action}")
+        lines.append(f"### Step {step.index + 1}: {step.action}")
+        
+        # AI Reasoning
+        if step.reasoning:
+            lines.append(f"**🤖 AI Reasoning:** {step.reasoning}")
+        
+        # Target
         if step.target:
-            lines.append(f"**Target:** {step.target}")
+            lines.append(f"**Target:** `{step.target}`")
+        
+        # URL tracking
+        if step.url_before:
+            lines.append(f"**Page URL:** `{step.url_before}`")
+        if step.url_after and step.url_after != step.url_before:
+            lines.append(f"**→ Navigated to:** `{step.url_after}`")
+        
+        # Observation
         lines.append(f"**Observation:** {step.observation or 'No observation recorded'}")
+        
+        # Timing
+        if step.duration_ms:
+            lines.append(f"**Duration:** {step.duration_ms / 1000:.2f}s")
+        
+        # Success check
         if step.succeeded is True:
-            lines.append("**Success check:** true — goal achieved here")
+            lines.append("**✅ Success check:** Goal achieved at this step")
         elif step.succeeded is False:
-            lines.append("**Success check:** false")
+            lines.append("**❌ Success check:** Not at goal URL yet")
         else:
-            lines.append("**Success check:** not yet")
+            lines.append("**⏳ Success check:** In progress")
+        
+        # Error details
+        if step.error_type:
+            lines.append(f"**⚠️ Error Type:** {step.error_type}")
+        
         lines.append("")
+    
+    # Final outcome
+    lines.append("## Final Outcome")
     if result.success:
-        lines.append("### 🎉 Reached success URL:")
-        lines.append(f"`{result.reason}`")
+        lines.append("### 🎉 Success!")
+        lines.append(f"Successfully reached goal URL: `{result.reason}`")
     else:
-        lines.append("### ⚠ Why it failed:")
-        lines.append(result.reason)
+        lines.append("### ⚠️ Failed to Complete Goal")
+        lines.append(f"**Reason:** {result.reason}")
+        
+        # Add suggestions for common failures
+        if "Time limit" in result.reason:
+            lines.append("")
+            lines.append("**Suggestion:** The agent ran out of time. The page may load slowly or require more steps.")
+        elif "Navigation" in result.reason:
+            lines.append("")
+            lines.append("**Suggestion:** Could not load the initial page. Check if the URL is accessible.")
+    
     return "\n".join(lines)
 
 MAX_STEPS = int(os.getenv("LLM_MAX_STEPS", "8"))
@@ -101,6 +150,11 @@ async def run_llm_agent_on_site(site: Site, goal: Goal) -> SiteResult:
                     reason = f"Time limit ({MAX_SECONDS}s) reached"
                     print(f"[Agent] Halting at step {i} due to time limit; elapsed={elapsed:.2f}s")
                     break
+                
+                # Capture state before action
+                step_start_time = time.monotonic()
+                url_before = page.url
+                
                 body_text = await page.locator("body").inner_text(timeout=5000)
                 body_text = _safe_text(body_text)
 
@@ -110,6 +164,7 @@ async def run_llm_agent_on_site(site: Site, goal: Goal) -> SiteResult:
                 plan_reason = plan.get("reason") or ""
 
                 observation = ""
+                error_type = None
 
                 if action == "CLICK":
                     locator = page.get_by_text(str(target), exact=False).first if target else None
@@ -136,8 +191,10 @@ async def run_llm_agent_on_site(site: Site, goal: Goal) -> SiteResult:
                             observation = f"Clicked '{str(target)[:50]}'"
                         else:
                             observation = "CLICK failed: no target locator"
+                            error_type = "ElementNotFound"
                     except Exception as e:
                         observation = f"CLICK failed: {e.__class__.__name__}"
+                        error_type = e.__class__.__name__
                 elif action == "SCROLL":
                     try:
                         amt = int(target) if target and str(target).isdigit() else last_scroll_amt
@@ -184,19 +241,50 @@ async def run_llm_agent_on_site(site: Site, goal: Goal) -> SiteResult:
                             observation = f"Typed '{str(target)[:30]}'"
                         else:
                             observation = "No input found"
+                            error_type = "ElementNotFound"
                     except Exception as e:
                         observation = f"TYPE failed: {e.__class__.__name__}"
+                        error_type = e.__class__.__name__
                 elif action == "DONE":
                     reason = plan_reason or "Planner indicated DONE"
-                    steps.append(Step(index=i, action=action, target=target, observation=reason, reasoning=plan_reason, succeeded=None, done=True))
+                    url_after = page.url
+                    duration_ms = int((time.monotonic() - step_start_time) * 1000)
+                    steps.append(Step(
+                        index=i, 
+                        action=action, 
+                        target=target, 
+                        observation=reason, 
+                        reasoning=plan_reason, 
+                        succeeded=None, 
+                        done=True,
+                        url_before=url_before,
+                        url_after=url_after,
+                        duration_ms=duration_ms
+                    ))
                     print(f"[Agent] step={i} action={action} target={target} done=True")
                     break
                 else:
                     observation = f"Unknown action {action}; treating as NOOP"
 
+                # Capture state after action
+                url_after = page.url
+                duration_ms = int((time.monotonic() - step_start_time) * 1000)
+                
                 # Success heuristic mid-loop
                 success_mid = await classify_success(page, goal, site.id)
-                step_obj = Step(index=i, action=action, target=target, observation=observation or plan_reason, reasoning=plan_reason, succeeded=success_mid, done=success_mid)
+                step_obj = Step(
+                    index=i, 
+                    action=action, 
+                    target=target, 
+                    observation=observation or plan_reason, 
+                    reasoning=plan_reason, 
+                    succeeded=success_mid, 
+                    done=success_mid,
+                    url_before=url_before,
+                    url_after=url_after,
+                    duration_ms=duration_ms,
+                    error_type=error_type
+                )
                 steps.append(step_obj)
                 print(f"[Agent] step={i} action={action} target={target} success={success_mid}")
                 if success_mid:

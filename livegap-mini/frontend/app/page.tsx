@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
 
 type Goal =
   | "I’m trying to talk to sales — can you help me reach the sales team?"
@@ -407,8 +408,25 @@ export default function HomePage() {
               </button>
             </div>
             <div className="max-h-[60vh] overflow-auto rounded-lg border border-slate-800 bg-slate-950/40 p-4 text-xs leading-relaxed">
-              {/* Render markdown naïvely; could integrate a parser later */}
-              <pre className="whitespace-pre-wrap font-mono text-[11px] text-slate-200">{reportText}</pre>
+              <div className="prose prose-invert prose-sm max-w-none">
+                <ReactMarkdown
+                  components={{
+                    h1: ({node, ...props}) => <h1 className="text-xl font-bold text-slate-100 mb-3 mt-4" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-lg font-semibold text-slate-200 mb-2 mt-3" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-base font-medium text-slate-300 mb-2 mt-2" {...props} />,
+                    p: ({node, ...props}) => <p className="text-slate-300 mb-2" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc list-inside text-slate-300 mb-2 space-y-1" {...props} />,
+                    li: ({node, ...props}) => <li className="text-slate-300" {...props} />,
+                    code: ({node, inline, ...props}: any) => 
+                      inline 
+                        ? <code className="bg-slate-800 text-slate-200 px-1.5 py-0.5 rounded text-xs font-mono" {...props} />
+                        : <code className="block bg-slate-800 text-slate-200 p-2 rounded text-xs font-mono overflow-x-auto" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-semibold text-slate-100" {...props} />,
+                  }}
+                >
+                  {reportText}
+                </ReactMarkdown>
+              </div>
             </div>
           </div>
         </div>
