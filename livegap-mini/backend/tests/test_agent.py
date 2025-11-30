@@ -118,6 +118,7 @@ async def test_run_llm_agent_basic_flow(mock_classify, mock_plan, mock_playwrigh
     mock_page.goto = AsyncMock()
     mock_page.screenshot = AsyncMock(return_value=b'fake-screenshot')
     mock_page.url = "https://example.com/success"
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
     
     # Setup async context manager
     mock_playwright.return_value.__aenter__.return_value = mock_pw
@@ -145,13 +146,23 @@ async def test_run_llm_agent_click_action(mock_classify, mock_plan, mock_playwri
     mock_context = AsyncMock()
     mock_page = AsyncMock()
     
+    # Mock locator chain for CLICK action
+    mock_locator = AsyncMock()
+    mock_locator.scroll_into_view_if_needed = AsyncMock()
+    mock_locator.bounding_box = AsyncMock(return_value={"x": 100, "y": 100, "width": 50, "height": 30})
+    mock_locator.evaluate = AsyncMock()
+    mock_locator.first = mock_locator
+    mock_page.get_by_text = Mock(return_value=mock_locator)
+    mock_page.mouse = AsyncMock()
+    mock_page.wait_for_timeout = AsyncMock()
+    
     mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
     mock_browser.new_context = AsyncMock(return_value=mock_context)
     mock_context.new_page = AsyncMock(return_value=mock_page)
     mock_page.goto = AsyncMock()
-    mock_page.click = AsyncMock()
     mock_page.screenshot = AsyncMock(return_value=b'screenshot')
     mock_page.url = "https://example.com/done"
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
     
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
@@ -166,7 +177,7 @@ async def test_run_llm_agent_click_action(mock_classify, mock_plan, mock_playwri
     site = Site(id="test", name="Test", url="https://example.com")
     result = await run_llm_agent_on_site(site=site, goal=Goal.SIGN_UP)
     
-    assert mock_page.click.called
+    assert mock_page.get_by_text.called
 
 
 @pytest.mark.asyncio
@@ -180,11 +191,22 @@ async def test_run_llm_agent_type_action(mock_classify, mock_plan, mock_playwrig
     mock_context = AsyncMock()
     mock_page = AsyncMock()
     
+    # Mock locator for TYPE action
+    mock_input_locator = AsyncMock()
+    mock_input_locator.count = AsyncMock(return_value=1)
+    mock_input_locator.first = mock_input_locator
+    mock_input_locator.scroll_into_view_if_needed = AsyncMock()
+    mock_input_locator.bounding_box = AsyncMock(return_value={"x": 100, "y": 100, "width": 200, "height": 40})
+    mock_input_locator.evaluate = AsyncMock()
+    mock_input_locator.fill = AsyncMock()
+    mock_page.locator = Mock(return_value=mock_input_locator)
+    mock_page.mouse = AsyncMock()
+    mock_page.wait_for_timeout = AsyncMock()
+    
     mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
     mock_browser.new_context = AsyncMock(return_value=mock_context)
     mock_context.new_page = AsyncMock(return_value=mock_page)
     mock_page.goto = AsyncMock()
-    mock_page.fill = AsyncMock()
     mock_page.screenshot = AsyncMock(return_value=b'img')
     mock_page.url = "https://example.com"
     
@@ -201,7 +223,7 @@ async def test_run_llm_agent_type_action(mock_classify, mock_plan, mock_playwrig
     site = Site(id="test", name="Test", url="https://example.com")
     result = await run_llm_agent_on_site(site=site, goal=Goal.PRICING)
     
-    assert mock_page.fill.called
+    assert mock_input_locator.fill.called
 
 
 @pytest.mark.asyncio
@@ -215,11 +237,15 @@ async def test_run_llm_agent_scroll_action(mock_classify, mock_plan, mock_playwr
     mock_context = AsyncMock()
     mock_page = AsyncMock()
     
+    # Mock mouse for SCROLL action
+    mock_page.mouse = AsyncMock()
+    mock_page.wait_for_timeout = AsyncMock()
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
+    
     mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
     mock_browser.new_context = AsyncMock(return_value=mock_context)
     mock_context.new_page = AsyncMock(return_value=mock_page)
     mock_page.goto = AsyncMock()
-    mock_page.evaluate = AsyncMock()
     mock_page.screenshot = AsyncMock(return_value=b'data')
     mock_page.url = "https://example.com"
     
@@ -236,7 +262,7 @@ async def test_run_llm_agent_scroll_action(mock_classify, mock_plan, mock_playwr
     site = Site(id="test", name="Test", url="https://example.com")
     result = await run_llm_agent_on_site(site=site, goal=Goal.HELP)
     
-    assert mock_page.evaluate.called
+    assert mock_page.mouse.wheel.called
 
 
 @pytest.mark.asyncio
@@ -257,6 +283,10 @@ async def test_run_llm_agent_wait_action(mock_classify, mock_plan, mock_playwrig
     mock_page.wait_for_timeout = AsyncMock()
     mock_page.screenshot = AsyncMock(return_value=b'bytes')
     mock_page.url = "https://example.com"
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
+    mock_page.mouse = AsyncMock()
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
+    mock_page.mouse = AsyncMock()
     
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
@@ -291,6 +321,9 @@ async def test_run_llm_agent_max_steps(mock_plan, mock_playwright):
     mock_page.goto = AsyncMock()
     mock_page.screenshot = AsyncMock(return_value=b'data')
     mock_page.url = "https://example.com"
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
+    mock_page.mouse = AsyncMock()
+    mock_page.wait_for_timeout = AsyncMock()
     
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
@@ -325,6 +358,7 @@ async def test_run_llm_agent_video_recording(mock_classify, mock_plan, mock_play
     mock_page.url = "https://example.com"
     mock_page.video = mock_video
     mock_video.path = AsyncMock(return_value="/tmp/recording.webm")
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
     
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
@@ -350,11 +384,18 @@ async def test_run_llm_agent_error_handling(mock_classify, mock_plan, mock_playw
     mock_context = AsyncMock()
     mock_page = AsyncMock()
     
+    # Mock a failing CLICK action
+    mock_locator = AsyncMock()
+    mock_locator.scroll_into_view_if_needed = AsyncMock(side_effect=Exception("Element not found"))
+    mock_locator.first = mock_locator
+    mock_page.get_by_text = Mock(return_value=mock_locator)
+    mock_page.locator = Mock(return_value=AsyncMock(inner_text=AsyncMock(return_value="page text")))
+    mock_page.wait_for_timeout = AsyncMock()
+    
     mock_pw.chromium.launch = AsyncMock(return_value=mock_browser)
     mock_browser.new_context = AsyncMock(return_value=mock_context)
     mock_context.new_page = AsyncMock(return_value=mock_page)
     mock_page.goto = AsyncMock()
-    mock_page.click = AsyncMock(side_effect=Exception("Element not found"))
     mock_page.screenshot = AsyncMock(return_value=b'error-screenshot')
     mock_page.url = "https://example.com"
     
