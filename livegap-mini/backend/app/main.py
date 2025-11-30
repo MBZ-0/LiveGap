@@ -1,6 +1,5 @@
 from fastapi import FastAPI, APIRouter, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from mangum import Mangum
 import asyncio
 import sys
@@ -34,14 +33,6 @@ app = FastAPI(title="another.ai Mini API")
 
 # API router with /api prefix to align with CloudFront path routing
 api_router = APIRouter(prefix="/api")
-# Serve recorded videos (webm files) as static content
-try:
-    from pathlib import Path
-    videos_dir = Path(__file__).with_name("videos")
-    if videos_dir.exists():
-        app.mount("/videos", StaticFiles(directory=str(videos_dir)), name="videos")
-except Exception as _mount_err:
-    print(f"[another.ai] Warning: could not mount /videos static directory: {_mount_err!r}")
 
 # CORS: allow local dev + Amplify/etc.
 app.add_middleware(

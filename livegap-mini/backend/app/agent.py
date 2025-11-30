@@ -10,6 +10,7 @@ from .models import Goal, Step, SiteResult
 from .runner import Site
 from .llm import plan_next_action, classify_success
 from .url_matcher import normalize_url
+from .s3_storage import upload_video_to_s3
 
 
 def render_report(site: Site, goal: Goal, result: SiteResult) -> str:
@@ -292,12 +293,25 @@ async def run_llm_agent_on_site(site: Site, goal: Goal) -> SiteResult:
                     reason = normalize_url(page.url)
                     break
 
-            # Capture video path
+            # Capture video path and upload to S3
+            # NO local fallback - S3 upload is required
             try:
                 if page.video:
                     raw = await page.video.path()
-                    video_url = f"/videos/{Path(raw).name}"
-            except Exception:
+                    video_filename = Path(raw).name
+                    
+                    # Upload to S3 and get CloudFront URL
+                    cloudfront_url = upload_video_to_s3(raw, video_filename)
+                    
+                    if cloudfront_url:
+                        # Use CloudFront URL directly
+                        video_url = cloudfront_url
+                    else:
+                        # S3 upload failed - no video available
+                        print(f"[Agent] WARNING: S3 upload failed for {video_filename}, no video available")
+                        video_url = None
+            except Exception as e:
+                print(f"[Agent] Video handling error: {e}")
                 video_url = None
 
             await context.close()

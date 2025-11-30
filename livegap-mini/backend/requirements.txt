@@ -7,3 +7,4 @@ mangum
 openai
 PyYAML
 python-dotenv
+boto3
