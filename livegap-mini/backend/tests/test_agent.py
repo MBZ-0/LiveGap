@@ -195,11 +195,26 @@ async def test_run_llm_agent_type_action(mock_classify, mock_plan, mock_playwrig
     mock_input_locator = AsyncMock()
     mock_input_locator.count = AsyncMock(return_value=1)
     mock_input_locator.first = mock_input_locator
+    mock_input_locator.nth = Mock(return_value=mock_input_locator)
     mock_input_locator.scroll_into_view_if_needed = AsyncMock()
     mock_input_locator.bounding_box = AsyncMock(return_value={"x": 100, "y": 100, "width": 200, "height": 40})
     mock_input_locator.evaluate = AsyncMock()
     mock_input_locator.fill = AsyncMock()
-    mock_page.locator = Mock(return_value=mock_input_locator)
+    mock_input_locator.get_attribute = AsyncMock(return_value=None)
+    
+    # Mock body locator for text reading
+    mock_body_locator = AsyncMock()
+    mock_body_locator.inner_text = AsyncMock(return_value="page text")
+    
+    # page.locator returns different mocks based on selector
+    def locator_side_effect(selector):
+        if selector == "body":
+            return mock_body_locator
+        elif selector == "input":
+            return mock_input_locator
+        return AsyncMock(inner_text=AsyncMock(return_value=""))
+    
+    mock_page.locator = Mock(side_effect=locator_side_effect)
     mock_page.mouse = AsyncMock()
     mock_page.wait_for_timeout = AsyncMock()
     
