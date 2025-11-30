@@ -215,7 +215,7 @@ export default function HomePage() {
           <span className="text-sm font-semibold tracking-wide">another.ai</span>
         </div>
         <a 
-          href="/about"
+          href="/about/index.html"
           className="text-xs font-medium text-slate-400 hover:text-slate-200 transition"
         >
           About

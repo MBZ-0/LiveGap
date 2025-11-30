@@ -12,7 +12,7 @@ export default function AboutPage() {
           <span className="text-sm font-semibold tracking-wide">another.ai</span>
         </div>
         <Link 
-          href="/"
+          href="/index.html"
           className="text-xs font-medium text-slate-400 hover:text-slate-200 transition"
         >
           Back to Dashboard
@@ -38,7 +38,7 @@ export default function AboutPage() {
             </p>
             <div className="flex items-center justify-center gap-4">
               <Link 
-                href="/"
+                href="/index.html"
                 className="inline-flex items-center rounded-xl bg-red-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-500/25 transition hover:bg-red-600"
               >
                 Try Live Demo
@@ -512,7 +512,7 @@ export default function AboutPage() {
           </p>
           <div className="flex items-center justify-center gap-4">
             <Link 
-              href="/"
+              href="/index.html"
               className="inline-flex items-center rounded-xl bg-red-500 px-8 py-4 text-base font-semibold text-white shadow-xl shadow-red-500/25 transition hover:bg-red-600"
             >
               Launch Dashboard
