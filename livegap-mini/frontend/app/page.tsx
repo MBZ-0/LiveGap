@@ -214,6 +214,12 @@ export default function HomePage() {
           <div className="h-8 w-8 rounded bg-red-500/90 flex items-center justify-center text-xs font-bold tracking-wide">A</div>
           <span className="text-sm font-semibold tracking-wide">another.ai</span>
         </div>
+        <a 
+          href="/about"
+          className="text-xs font-medium text-slate-400 hover:text-slate-200 transition"
+        >
+          About
+        </a>
       </header>
       {/* Body layout */}
       <div className="flex flex-1 overflow-hidden">
