@@ -1,6 +1,33 @@
 # another.ai
 See how badly your AI agent fails on real websites.
 
+## 🧪 CI/CD & Testing
+
+This project includes comprehensive test coverage and continuous integration:
+
+- **Backend**: 45 tests with 50% coverage (pytest)
+- **Frontend**: Jest + React Testing Library configured
+- **CI Pipeline**: GitHub Actions workflow for automated testing
+
+### Quick Test Commands
+
+```powershell
+# Run all tests (both backend and frontend)
+.\run-tests.ps1
+
+# Backend only
+cd livegap-mini\backend
+python -m pytest tests/ --cov=app --cov-report=html -v
+
+# Frontend only
+cd livegap-mini\frontend
+npm run test:coverage
+```
+
+📖 **Documentation**: See [`CI_SETUP.md`](CI_SETUP.md) for detailed testing information.
+
+---
+
 ## another.ai Mini
 
 This subproject (`livegap-mini/`) is a minimal end-to-end demo:

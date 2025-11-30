@@ -1,0 +1,112 @@
+name: CI - Test Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+jobs:
+  backend-tests:
+    name: Backend Tests (Python)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./livegap-mini/backend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run tests with coverage
+        run: |
+          pytest --cov=app --cov-report=term-missing --cov-report=xml --cov-report=html -v
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: livegap-mini/backend/htmlcov/
+      
+      - name: Display coverage summary
+        run: |
+          coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+          echo "## Backend Test Coverage" >> $GITHUB_STEP_SUMMARY
+          coverage report >> $GITHUB_STEP_SUMMARY
+
+  frontend-tests:
+    name: Frontend Tests (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./livegap-mini/frontend
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: livegap-mini/frontend/package-lock.json
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Run tests with coverage
+        run: npm run test:coverage
+      
+      - name: Upload coverage reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: livegap-mini/frontend/coverage/
+      
+      - name: Display coverage summary
+        run: |
+          echo "## Frontend Test Coverage" >> $GITHUB_STEP_SUMMARY
+          cat coverage/coverage-summary.txt >> $GITHUB_STEP_SUMMARY || echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+
+  coverage-report:
+    name: Combined Coverage Report
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]
+    
+    steps:
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage-report
+          path: backend-coverage
+      
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage-report
+          path: frontend-coverage
+      
+      - name: Generate summary
+        run: |
+          echo "# 📊 Test Coverage Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Coverage reports have been generated for:" >> $GITHUB_STEP_SUMMARY
+          echo "- Backend (Python/FastAPI)" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend (Next.js/React)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the artifacts to view detailed HTML coverage reports." >> $GITHUB_STEP_SUMMARY
