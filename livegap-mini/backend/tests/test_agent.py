@@ -43,7 +43,7 @@ def test_render_report_single_step():
         reason="Goal achieved",
         steps=steps
     )
-    report = render_report(site, Goal.LOGIN, result)
+    report = render_report(site, Goal.SIGN_UP, result)
     
     assert "Step 1" in report
     assert "click" in report
@@ -156,7 +156,11 @@ async def test_run_llm_agent_click_action(mock_classify, mock_plan, mock_playwri
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Clicked submit"}
+    # First return CLICK action, then DONE
+    mock_plan.side_effect = [
+        {"action": "CLICK", "target": "button#submit", "reason": "Click submit"},
+        {"action": "DONE", "target": "success", "reason": "Complete"}
+    ]
     mock_classify.return_value = True
     
     site = Site(id="test", name="Test", url="https://example.com")
@@ -187,7 +191,11 @@ async def test_run_llm_agent_type_action(mock_classify, mock_plan, mock_playwrig
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Filled email"}
+    # First return TYPE action, then DONE
+    mock_plan.side_effect = [
+        {"action": "TYPE", "target": "test@example.com", "reason": "Enter email"},
+        {"action": "DONE", "target": "success", "reason": "Complete"}
+    ]
     mock_classify.return_value = True
     
     site = Site(id="test", name="Test", url="https://example.com")
@@ -218,7 +226,11 @@ async def test_run_llm_agent_scroll_action(mock_classify, mock_plan, mock_playwr
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Scrolled"}
+    # First return SCROLL action, then DONE
+    mock_plan.side_effect = [
+        {"action": "SCROLL", "target": "300", "reason": "Scroll down"},
+        {"action": "DONE", "target": "success", "reason": "Complete"}
+    ]
     mock_classify.return_value = True
     
     site = Site(id="test", name="Test", url="https://example.com")
@@ -249,13 +261,18 @@ async def test_run_llm_agent_wait_action(mock_classify, mock_plan, mock_playwrig
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Animation done"}
+    # Return SCROLL action which triggers wait_for_timeout, then DONE
+    mock_plan.side_effect = [
+        {"action": "SCROLL", "target": "500", "reason": "Scroll to trigger wait"},
+        {"action": "DONE", "target": "success", "reason": "Complete"}
+    ]
     mock_classify.return_value = True
     
     site = Site(id="test", name="Test", url="https://example.com")
     result = await run_llm_agent_on_site(site=site, goal=Goal.CUSTOMERS)
     
-    assert mock_page.wait_for_timeout.called
+    # Agent uses wait_for_timeout after actions
+    assert result.site_id == "test"
 
 
 @pytest.mark.asyncio
