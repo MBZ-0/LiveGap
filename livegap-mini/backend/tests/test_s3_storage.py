@@ -47,7 +47,7 @@ def test_get_s3_client_default_region(mock_getenv, mock_boto_client):
 def test_upload_video_to_s3_success(mock_path, mock_getenv, mock_get_client):
     """Test successful video upload to S3"""
     mock_getenv.side_effect = lambda key, default=None: {
-        'S3_BUCKET_NAME': 'test-bucket',
+        'AWS_S3_BUCKET': 'test-bucket',
         'CLOUDFRONT_DOMAIN': 'test.cloudfront.net'
     }.get(key, default)
     
@@ -58,6 +58,7 @@ def test_upload_video_to_s3_success(mock_path, mock_getenv, mock_get_client):
     mock_file_path = Mock()
     mock_file_path.exists.return_value = True
     mock_file_path.stat.return_value.st_size = 1024
+    mock_file_path.unlink = Mock()  # Mock unlink to avoid file deletion
     mock_path.return_value = mock_file_path
     
     # Mock successful upload
@@ -74,7 +75,7 @@ def test_upload_video_to_s3_success(mock_path, mock_getenv, mock_get_client):
 def test_upload_video_to_s3_no_bucket(mock_getenv, mock_get_client):
     """Test upload fails gracefully without bucket name"""
     mock_getenv.side_effect = lambda key, default=None: {
-        'S3_BUCKET_NAME': None
+        'AWS_S3_BUCKET': None
     }.get(key, default)
     
     result = upload_video_to_s3("test.webm", "video.webm")
@@ -131,28 +132,17 @@ def test_upload_video_to_s3_upload_error(mock_path, mock_getenv, mock_get_client
 @patch('app.s3_storage.os.getenv')
 @patch('app.s3_storage.Path')
 def test_upload_video_to_s3_no_cloudfront(mock_path, mock_getenv, mock_get_client):
-    """Test upload without CloudFront domain"""
+    """Test upload fails without CloudFront domain"""
     mock_getenv.side_effect = lambda key, default=None: {
-        'S3_BUCKET_NAME': 'test-bucket',
+        'AWS_S3_BUCKET': 'test-bucket',
         'CLOUDFRONT_DOMAIN': None,
         'AWS_REGION': 'us-west-2'
     }.get(key, default)
     
-    mock_client = Mock()
-    mock_get_client.return_value = mock_client
-    
-    mock_file_path = Mock()
-    mock_file_path.exists.return_value = True
-    mock_file_path.stat.return_value.st_size = 1024
-    mock_path.return_value = mock_file_path
-    
-    mock_client.upload_file.return_value = None
-    
     result = upload_video_to_s3("test.webm", "video.webm")
     
-    # Should return S3 URL instead of CloudFront
-    assert result is not None
-    assert "s3" in result or "amazonaws.com" in result
+    # Should return None without CloudFront
+    assert result is None
 
 
 @patch('app.s3_storage.get_s3_client')
@@ -161,7 +151,7 @@ def test_upload_video_to_s3_no_cloudfront(mock_path, mock_getenv, mock_get_clien
 def test_upload_video_with_metadata(mock_path, mock_getenv, mock_get_client):
     """Test upload includes proper metadata"""
     mock_getenv.side_effect = lambda key, default=None: {
-        'S3_BUCKET_NAME': 'test-bucket',
+        'AWS_S3_BUCKET': 'test-bucket',
         'CLOUDFRONT_DOMAIN': 'cdn.example.com'
     }.get(key, default)
     
@@ -171,6 +161,7 @@ def test_upload_video_with_metadata(mock_path, mock_getenv, mock_get_client):
     mock_file_path = Mock()
     mock_file_path.exists.return_value = True
     mock_file_path.stat.return_value.st_size = 2048
+    mock_file_path.unlink = Mock()
     mock_path.return_value = mock_file_path
     
     upload_video_to_s3("recording.webm", "session-123.webm")
@@ -189,7 +180,6 @@ def test_get_s3_client_error_handling(mock_getenv, mock_boto_client):
     
     mock_boto_client.side_effect = Exception("AWS Error")
     
-    client = get_s3_client()
-    
-    # Should handle error gracefully
-    assert client is None or client is not None  # Either returns None or raises
+    # Should raise exception
+    with pytest.raises(Exception):
+        client = get_s3_client()

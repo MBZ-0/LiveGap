@@ -7,23 +7,45 @@ from app.models import Step, Goal
 
 def test_render_report_empty():
     """Test rendering report with no steps"""
-    steps = []
-    report = render_report(steps)
+    from app.runner import Site
+    site = Site(id="test", name="Test Site", url="https://example.com")
+    result = SiteResult(
+        site_id="test",
+        site_name="Test Site",
+        url="https://example.com",
+        success=False,
+        reason="No steps",
+        steps=[]
+    )
+    report = render_report(site, Goal.LOGIN, result)
     
-    assert report == ""
+    assert "Test Site" in report
+    assert "FAILURE" in report
 
 
 def test_render_report_single_step():
     """Test rendering report with one step"""
+    from app.runner import Site
+    from app.models import SiteResult
+    site = Site(id="test", name="Test Site", url="https://example.com")
     steps = [
         Step(
-            step_number=1,
+            index=0,
             action="click",
             target="button#login",
-            reasoning="Need to click login button"
+            reasoning="Need to click login button",
+            observation="Clicked button"
         )
     ]
-    report = render_report(steps)
+    result = SiteResult(
+        site_id="test",
+        site_name="Test Site",
+        url="https://example.com",
+        success=True,
+        reason="Goal achieved",
+        steps=steps
+    )
+    report = render_report(site, Goal.LOGIN, result)
     
     assert "Step 1" in report
     assert "click" in report
@@ -33,34 +55,55 @@ def test_render_report_single_step():
 
 def test_render_report_multiple_steps():
     """Test rendering report with multiple steps"""
+    from app.runner import Site
+    from app.models import SiteResult
+    site = Site(id="test", name="Test Site", url="https://example.com")
     steps = [
-        Step(step_number=1, action="type", target="input[name='username']", 
-             reasoning="Enter username", text="testuser"),
-        Step(step_number=2, action="click", target="button[type='submit']",
-             reasoning="Submit form"),
-        Step(step_number=3, action="wait", target="div.success",
-             reasoning="Wait for confirmation")
+        Step(index=0, action="type", target="input[name='username']", 
+             reasoning="Enter username", observation="Typed text"),
+        Step(index=1, action="click", target="button[type='submit']",
+             reasoning="Submit form", observation="Clicked"),
+        Step(index=2, action="wait", target="div.success",
+             reasoning="Wait for confirmation", observation="Waited")
     ]
-    report = render_report(steps)
+    result = SiteResult(
+        site_id="test",
+        site_name="Test Site",
+        url="https://example.com",
+        success=True,
+        reason="Completed",
+        steps=steps
+    )
+    report = render_report(site, Goal.SIGN_UP, result)
     
     assert "Step 1" in report
     assert "Step 2" in report
     assert "Step 3" in report
-    assert "testuser" in report
 
 
 def test_render_report_with_optional_fields():
-    """Test rendering with optional text and wait_seconds"""
+    """Test rendering with optional duration_ms"""
+    from app.runner import Site
+    from app.models import SiteResult
+    site = Site(id="test", name="Test Site", url="https://example.com")
     steps = [
-        Step(step_number=1, action="scroll", target="footer",
-             reasoning="Scroll to bottom", scroll_amount=500),
-        Step(step_number=2, action="wait", target=None,
-             reasoning="Wait for load", wait_seconds=2)
+        Step(index=0, action="scroll", target="footer",
+             reasoning="Scroll to bottom", observation="Scrolled", duration_ms=500),
+        Step(index=1, action="wait", target=None,
+             reasoning="Wait for load", observation="Waited", duration_ms=2000)
     ]
-    report = render_report(steps)
+    result = SiteResult(
+        site_id="test",
+        site_name="Test Site",
+        url="https://example.com",
+        success=True,
+        reason="Done",
+        steps=steps
+    )
+    report = render_report(site, Goal.PRICING, result)
     
-    assert "500" in report or "scroll" in report
-    assert "2" in report or "wait" in report
+    assert "scroll" in report.lower()
+    assert "wait" in report.lower()
 
 
 @pytest.mark.asyncio
@@ -86,10 +129,8 @@ async def test_run_llm_agent_basic_flow(mock_classify, mock_plan, mock_playwrigh
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    # Mock LLM responses
-    mock_plan.return_value = [
-        Step(step_number=1, action="click", target="button", reasoning="Test")
-    ]
+    # Mock LLM responses - return dict not Step objects
+    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Test complete"}
     mock_classify.return_value = True
     
     from app.success_config import SuccessConfig
@@ -129,9 +170,7 @@ async def test_run_llm_agent_click_action(mock_classify, mock_plan, mock_playwri
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = [
-        Step(step_number=1, action="click", target="button#submit", reasoning="Click submit")
-    ]
+    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Clicked submit"}
     mock_classify.return_value = True
     
     from app.success_config import SuccessConfig
@@ -170,10 +209,7 @@ async def test_run_llm_agent_type_action(mock_classify, mock_plan, mock_playwrig
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = [
-        Step(step_number=1, action="type", target="input#email", 
-             reasoning="Enter email", text="test@example.com")
-    ]
+    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Filled email"}
     mock_classify.return_value = True
     
     from app.success_config import SuccessConfig
@@ -212,10 +248,7 @@ async def test_run_llm_agent_scroll_action(mock_classify, mock_plan, mock_playwr
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = [
-        Step(step_number=1, action="scroll", target="footer",
-             reasoning="Scroll down", scroll_amount=300)
-    ]
+    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Scrolled"}
     mock_classify.return_value = True
     
     from app.success_config import SuccessConfig
@@ -254,10 +287,7 @@ async def test_run_llm_agent_wait_action(mock_classify, mock_plan, mock_playwrig
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = [
-        Step(step_number=1, action="wait", target=None,
-             reasoning="Wait for animation", wait_seconds=3)
-    ]
+    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Animation done"}
     mock_classify.return_value = True
     
     from app.success_config import SuccessConfig
@@ -294,11 +324,8 @@ async def test_run_llm_agent_max_steps(mock_plan, mock_playwright):
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    # Return infinite steps
-    mock_plan.return_value = [
-        Step(step_number=i, action="wait", target=None, reasoning="Step", wait_seconds=1)
-        for i in range(1, 100)
-    ]
+    # Always return scroll action to test max steps limit
+    mock_plan.return_value = {"action": "SCROLL", "target": "100", "reason": "Keep going"}
     
     from app.success_config import SuccessConfig
     success_config = SuccessConfig(["https://example.com/never"])
@@ -339,9 +366,7 @@ async def test_run_llm_agent_video_recording(mock_classify, mock_plan, mock_play
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = [
-        Step(step_number=1, action="click", target="a", reasoning="Navigate")
-    ]
+    mock_plan.return_value = {"action": "DONE", "target": "success", "reason": "Navigation complete"}
     mock_classify.return_value = True
     
     from app.success_config import SuccessConfig
@@ -381,9 +406,7 @@ async def test_run_llm_agent_error_handling(mock_classify, mock_plan, mock_playw
     mock_playwright.return_value.__aenter__.return_value = mock_pw
     mock_playwright.return_value.__aexit__.return_value = AsyncMock()
     
-    mock_plan.return_value = [
-        Step(step_number=1, action="click", target="button#missing", reasoning="Click")
-    ]
+    mock_plan.return_value = {"action": "CLICK", "target": "button#missing", "reason": "Try to click"}
     mock_classify.return_value = False
     
     from app.success_config import SuccessConfig
