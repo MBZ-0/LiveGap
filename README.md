@@ -121,32 +121,20 @@ Expected Success Rate: 40-70%
 
 ## 🏗️ Architecture
 
-```
-┌─────────────┐
-│   Browser   │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────────────────────────────┐
-│   CloudFront CDN                    │
-│   (d3lcgzvi9bu5xi.cloudfront.net)   │
-└──────┬──────────────────────────────┘
-       │
-       ├─── /* → S3 Static Site (Frontend)
-       │
-       └─── /api/* → EC2 Backend (Port 8000)
-                      │
-                      ├─── FastAPI Server
-                      ├─── Playwright (Chromium)
-                      ├─── OpenAI API
-                      └─── S3 Upload
-                               │
-                               ▼
-                      ┌────────────────┐
-                      │  S3 Bucket     │
-                      │  (Videos)      │
-                      └────────────────┘
-```
+![Architecture Diagram](./architecture-diagram.png)
+
+### Architecture Components
+
+| Architecture Component                           | Code / Docs Location                                   | One-Sentence Integration Description |
+|--------------------------------------------------|--------------------------------------------------------|--------------------------------------|
+| **User Browser (Next.js UI)**                    | [`livegap-mini/frontend/app/page.tsx`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/frontend/app/page.tsx) | Renders the main dashboard UI and sends HTTPS requests to CloudFront for static assets and `/api/*` calls. |
+| **AWS CloudFront (Public CDN Endpoint)**         | [`README.md`](https://github.com/MBZ-0/LiveGap/blob/main/README.md) – *Architecture / Production Deployment* | Acts as the single public entrypoint, serving the static Next.js frontend from S3 and proxying `/api/*` requests to the EC2 backend. |
+| **S3 Frontend Bucket (Next.js Export)**          | `livegap-mini/frontend` build output (`out/`)         | Hosts the exported static Next.js site that CloudFront serves to users. |
+| **EC2 Backend (FastAPI)**                        | [`livegap-mini/backend/app/main.py`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/backend/app/main.py) | Exposes the REST API (`/api/run-reality-check`, `/api/run/{run_id}`) and orchestrates agent runs for each request. |
+| **Playwright Browser (Headless Chromium)**       | [`livegap-mini/backend/app/agent.py`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/backend/app/agent.py) & [`runner.py`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/backend/app/runner.py) | Runs headless Chromium sessions on EC2 to execute the reference browser agent across the 10 SaaS sites. |
+| **Local Video File (Temporary)**                 | `livegap-mini/backend/app/videos/` (via [`agent.py`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/backend/app/agent.py)) | Stores raw session recordings on disk before they are uploaded to the S3 video bucket. |
+| **S3 Video Bucket (Recordings)**                 | [`livegap-mini/backend/app/s3_storage.py`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/backend/app/s3_storage.py) | Receives uploaded `.webm` recordings from the backend and serves them via CloudFront `/videos/*` URLs for playback in the UI. |
+| **OpenAI API (LLM Requests)**                    | [`livegap-mini/backend/app/llm.py`](https://github.com/MBZ-0/LiveGap/blob/main/livegap-mini/backend/app/llm.py) | Sends LLM requests from the EC2 backend to OpenAI to power agent reasoning and generate human-readable reports. |
 
 ### Technology Stack
 
