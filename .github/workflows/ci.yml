@@ -79,7 +79,9 @@ jobs:
       - name: Display coverage summary
         run: |
           echo "## Frontend Test Coverage" >> $GITHUB_STEP_SUMMARY
-          cat coverage/coverage-summary.txt >> $GITHUB_STEP_SUMMARY || echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          npm test -- --coverage --watchAll=false 2>&1 | grep -E "^(All files|File|---)" | tail -20 >> $GITHUB_STEP_SUMMARY || echo "Coverage summary not available" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
   coverage-report:
     name: Combined Coverage Report
