@@ -121,7 +121,7 @@ Expected Success Rate: 40-70%
 
 ## 🏗️ Architecture
 
-![Architecture Diagram](./architecture-diagram.png)
+![Architecture Diagram](./Another.ai%20MVP%20Architecture%20Diagram.png)
 
 ### Architecture Components
 
