@@ -114,7 +114,7 @@ Expected Success Rate: 40-70%
 - **Browser:** Playwright Chromium automation
 - **AI:** OpenAI GPT-4o-mini for decision-making
 - **Storage:** AWS S3 + CloudFront for video delivery
-- **Testing:** 50% coverage with pytest + Jest
+- **Testing:** 85% backend coverage (pytest), 70% frontend coverage (Jest)
 - **CI/CD:** GitHub Actions for automated testing
 
 ---
@@ -644,8 +644,10 @@ start coverage\lcov-report\index.html
 
 ### Test Coverage
 
-- **Backend:** 50% coverage with 45 passing tests
-- **Frontend:** Jest + React Testing Library configured
+- **Backend:** 85% coverage with 45 passing tests
+  - Key modules: `agent.py`, `llm.py`, `main.py`, `runner.py` all above 80%
+- **Frontend:** 70% statements, 83.8% branches, 97.6% functions
+  - Jest + React Testing Library
 - **CI Pipeline:** Automated via GitHub Actions
 
 ### CI/CD Pipeline
