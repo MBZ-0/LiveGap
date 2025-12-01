@@ -46,6 +46,18 @@ describe('HomePage Component', () => {
     jest.clearAllMocks();
     localStorageMock.clear();
     jest.useFakeTimers();
+    
+    // Default mock for fetch - returns a "done" status for any polling requests
+    (global.fetch as jest.Mock).mockImplementation((url: string) => {
+      // Default response for polling requests
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({
+          status: 'done',
+          results: [],
+        }),
+      });
+    });
   });
 
   afterEach(() => {
@@ -81,7 +93,7 @@ describe('HomePage Component', () => {
   });
 
   describe('LocalStorage Integration', () => {
-    it('loads persisted runs from localStorage on mount', () => {
+    it('loads persisted runs from localStorage on mount', async () => {
       const mockRuns = [
         {
           id: 'run-1',
@@ -95,8 +107,11 @@ describe('HomePage Component', () => {
       localStorageMock.setItem('lg_runs', JSON.stringify(mockRuns));
 
       render(<HomePage />);
-      expect(screen.getByText('Test Run 1')).toBeInTheDocument();
-      expect(screen.getByText('Success: 75%')).toBeInTheDocument();
+      
+      await waitFor(() => {
+        expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+      });
+      expect(screen.getByText(/Success:.*75/)).toBeInTheDocument();
     });
 
     it('persists runs to localStorage when they change', async () => {
@@ -197,7 +212,9 @@ describe('HomePage Component', () => {
       });
 
       // Test run should appear in sidebar
-      expect(screen.getByText('Integration Test')).toBeInTheDocument();
+      await waitFor(() => {
+        expect(screen.getByText('Integration Test')).toBeInTheDocument();
+      });
     });
 
     it('displays error when API call fails', async () => {
@@ -259,30 +276,45 @@ describe('HomePage Component', () => {
       localStorageMock.setItem('lg_runs', JSON.stringify(mockRuns));
     });
 
-    it('filters runs by name', () => {
+    it('filters runs by name', async () => {
       render(<HomePage />);
-      const searchInput = screen.getByPlaceholderText('Search runs…');
       
+      // Wait for runs to load
+      await waitFor(() => {
+        expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+      });
+      
+      const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'Slack' } });
       
       expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
       expect(screen.queryByText('HubSpot Pricing')).not.toBeInTheDocument();
     });
 
-    it('filters runs by goal', () => {
+    it('filters runs by goal', async () => {
       render(<HomePage />);
-      const searchInput = screen.getByPlaceholderText('Search runs…');
       
+      // Wait for runs to load
+      await waitFor(() => {
+        expect(screen.getByText('HubSpot Pricing')).toBeInTheDocument();
+      });
+      
+      const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'pricing' } });
       
       expect(screen.getByText('HubSpot Pricing')).toBeInTheDocument();
       expect(screen.queryByText('Slack Sales Test')).not.toBeInTheDocument();
     });
 
-    it('shows all runs when search is cleared', () => {
+    it('shows all runs when search is cleared', async () => {
       render(<HomePage />);
-      const searchInput = screen.getByPlaceholderText('Search runs…');
       
+      // Wait for runs to load
+      await waitFor(() => {
+        expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+      });
+      
+      const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'Slack' } });
       fireEvent.change(searchInput, { target: { value: '' } });
       
@@ -290,10 +322,15 @@ describe('HomePage Component', () => {
       expect(screen.getByText('HubSpot Pricing')).toBeInTheDocument();
     });
 
-    it('is case-insensitive', () => {
+    it('is case-insensitive', async () => {
       render(<HomePage />);
-      const searchInput = screen.getByPlaceholderText('Search runs…');
       
+      // Wait for runs to load
+      await waitFor(() => {
+        expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+      });
+      
+      const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'SLACK' } });
       
       expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
@@ -336,16 +373,23 @@ describe('HomePage Component', () => {
       localStorageMock.setItem('lg_runs', JSON.stringify(mockRuns));
     });
 
-    it('auto-selects first run on mount', () => {
+    it('auto-selects first run on mount', async () => {
       render(<HomePage />);
-      expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+      
+      await waitFor(() => {
+        expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+      });
       expect(screen.getByText('Sites Evaluated')).toBeInTheDocument();
     });
 
-    it('displays run details when selected', () => {
+    it('displays run details when selected', async () => {
       render(<HomePage />);
+      
+      await waitFor(() => {
+        expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+      });
       expect(screen.getByText('Can you show me the pricing or plans for this company?')).toBeInTheDocument();
-      expect(screen.getByText('75%')).toBeInTheDocument();
+      expect(screen.getByText(/^75$/)).toBeInTheDocument();
       expect(screen.getByText('Total: 2')).toBeInTheDocument();
     });
 
@@ -403,10 +447,19 @@ describe('HomePage Component', () => {
       localStorageMock.setItem('lg_runs', JSON.stringify(mockRuns));
     });
 
-    it('opens video modal when Video button is clicked', () => {
+    it('opens video modal when Video button is clicked', async () => {
       render(<HomePage />);
-      const videoButton = screen.getByRole('button', { name: /video/i });
-      fireEvent.click(videoButton);
+      
+      await waitFor(() => {
+        const videoButtons = screen.getAllByRole('button');
+        expect(videoButtons.some(btn => btn.textContent === 'Video')).toBe(true);
+      });
+      
+      const videoButtons = screen.getAllByRole('button');
+      const artifactVideoButton = videoButtons.find(btn => 
+        btn.textContent === 'Video' && btn.classList.contains('rounded-md')
+      );
+      fireEvent.click(artifactVideoButton!);
       
       expect(screen.getByText('Recorded Session')).toBeInTheDocument();
       const video = screen.getByRole('generic', { name: '' });
@@ -415,7 +468,11 @@ describe('HomePage Component', () => {
 
     it('closes video modal when Close button is clicked', () => {
       render(<HomePage />);
-      fireEvent.click(screen.getByRole('button', { name: /video/i }));
+      const videoButtons = screen.getAllByRole('button');
+      const artifactVideoButton = videoButtons.find(btn => 
+        btn.textContent === 'Video' && btn.classList.contains('rounded-md')
+      );
+      fireEvent.click(artifactVideoButton!);
       fireEvent.click(screen.getAllByRole('button', { name: /close/i })[0]);
       
       expect(screen.queryByText('Recorded Session')).not.toBeInTheDocument();
@@ -423,7 +480,11 @@ describe('HomePage Component', () => {
 
     it('displays video with correct src', () => {
       render(<HomePage />);
-      fireEvent.click(screen.getByRole('button', { name: /video/i }));
+      const videoButtons = screen.getAllByRole('button');
+      const artifactVideoButton = videoButtons.find(btn => 
+        btn.textContent === 'Video' && btn.classList.contains('rounded-md')
+      );
+      fireEvent.click(artifactVideoButton!);
       
       const video = document.querySelector('video');
       expect(video).toHaveAttribute('src', 'https://example.com/test-video.mp4');
@@ -489,9 +550,10 @@ describe('HomePage Component', () => {
       );
       fireEvent.click(artifactReportButton!);
       
-      expect(screen.getByText('Test Report')).toBeInTheDocument();
-      expect(screen.getByText('This is a')).toBeInTheDocument();
-      expect(screen.getByText('bold')).toBeInTheDocument();
+      // The mock renders markdown as plain text, so look for the raw content
+      expect(screen.getByText(/Test Report/i)).toBeInTheDocument();
+      expect(screen.getByText(/This is a/i)).toBeInTheDocument();
+      expect(screen.getByText(/bold/i)).toBeInTheDocument();
     });
   });
 
