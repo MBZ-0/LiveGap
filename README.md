@@ -6,7 +6,7 @@ An AI-powered web agent testing platform that evaluates how well automated brows
 
 [![CI Status](https://github.com/MBZ-0/LiveGap/actions/workflows/ci.yml/badge.svg)](https://github.com/MBZ-0/LiveGap/actions)
 
-**🌐 Live Production App:** [https://d3fxzs3c0qftlv.cloudfront.net](https://d3fxzs3c0qftlv.cloudfront.net)
+**🌐 Live Production App:** [https://d3lcgzvi9bu5xi.cloudfront.net](https://d3lcgzvi9bu5xi.cloudfront.net)
 
 ---
 
@@ -68,7 +68,7 @@ An AI-powered web agent testing platform that evaluates how well automated brows
 
 ## 🌐 Live Demo Access
 
-**🚀 Production URL:** [https://d3fxzs3c0qftlv.cloudfront.net](https://d3fxzs3c0qftlv.cloudfront.net)
+**🚀 Production URL:** [https://d3lcgzvi9bu5xi.cloudfront.net](https://d3lcgzvi9bu5xi.cloudfront.net)
 
 **No login required** — the application is publicly accessible.
 
@@ -129,7 +129,7 @@ Expected Success Rate: 40-70%
        ▼
 ┌─────────────────────────────────────┐
 │   CloudFront CDN                    │
-│   (d3fxzs3c0qftlv.cloudfront.net)   │
+│   (d3lcgzvi9bu5xi.cloudfront.net)   │
 └──────┬──────────────────────────────┘
        │
        ├─── /* → S3 Static Site (Frontend)
@@ -260,7 +260,7 @@ npm run dev
 
 ### Current Production Setup
 
-**Live URL:** [https://d3fxzs3c0qftlv.cloudfront.net](https://d3fxzs3c0qftlv.cloudfront.net)
+**Live URL:** [https://d3lcgzvi9bu5xi.cloudfront.net](https://d3lcgzvi9bu5xi.cloudfront.net)
 
 Our production deployment uses:
 - **Frontend:** S3 Static Website Hosting
@@ -490,7 +490,7 @@ cd LiveGap/livegap-mini/backend
 nano .env
 
 # Update this line:
-CLOUDFRONT_DOMAIN=d3fxzs3c0qftlv.cloudfront.net
+CLOUDFRONT_DOMAIN=d3lcgzvi9bu5xi.cloudfront.net
 
 # Restart backend
 pm2 restart another-ai-backend
@@ -592,7 +592,7 @@ NEXT_PUBLIC_API_BASE=http://localhost:8000/api
 Create `livegap-mini/frontend/.env.production` (production):
 
 ```bash
-NEXT_PUBLIC_API_BASE=https://d3fxzs3c0qftlv.cloudfront.net/api
+NEXT_PUBLIC_API_BASE=https://d3lcgzvi9bu5xi.cloudfront.net/api
 ```
 
 ### AWS Credentials
@@ -1033,18 +1033,4 @@ LiveGap/
 
 ---
 
-## 📄 License
-
-Internal prototype — no license specified yet. Add MIT or appropriate license before public release.
-
----
-
-## 📞 Support
-
-- **Issues:** [GitHub Issues](https://github.com/MBZ-0/LiveGap/issues)
-- **Documentation:** See [`CI_SETUP.md`](CI_SETUP.md) for testing details
-- **Live Demo:** [https://d3fxzs3c0qftlv.cloudfront.net](https://d3fxzs3c0qftlv.cloudfront.net)
-
----
-
-**Built with ❤️ for CS 454/491 — Fall 2025**
+**Built with ❤️ for CSC 454/491 — Fall 2025***
