@@ -75,7 +75,7 @@ describe('HomePage Component', () => {
 
     it('renders sidebar with Test Runs heading and New button', () => {
       render(<HomePage />);
-      expect(screen.getByText('TEST RUNS')).toBeInTheDocument();
+      expect(screen.getByText(/test runs/i)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /new/i })).toBeInTheDocument();
     });
 
@@ -109,7 +109,7 @@ describe('HomePage Component', () => {
       render(<HomePage />);
       
       await waitFor(() => {
-        expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+        expect(screen.getAllByText('Test Run 1')[0]).toBeInTheDocument();
       });
       expect(screen.getByText(/Success:.*75/)).toBeInTheDocument();
     });
@@ -213,7 +213,7 @@ describe('HomePage Component', () => {
 
       // Test run should appear in sidebar
       await waitFor(() => {
-        expect(screen.getByText('Integration Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Integration Test')[0]).toBeInTheDocument();
       });
     });
 
@@ -281,14 +281,14 @@ describe('HomePage Component', () => {
       
       // Wait for runs to load
       await waitFor(() => {
-        expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Slack Sales Test')[0]).toBeInTheDocument();
       });
       
       const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'Slack' } });
       
-      expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
-      expect(screen.queryByText('HubSpot Pricing')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Slack Sales Test')[0]).toBeInTheDocument();
+      expect(screen.queryByText('HubSpot Pricing')).toBeNull();
     });
 
     it('filters runs by goal', async () => {
@@ -302,8 +302,16 @@ describe('HomePage Component', () => {
       const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'pricing' } });
       
-      expect(screen.getByText('HubSpot Pricing')).toBeInTheDocument();
-      expect(screen.queryByText('Slack Sales Test')).not.toBeInTheDocument();
+      // Should show HubSpot Pricing in sidebar, Slack Sales Test should be filtered out from sidebar
+      await waitFor(() => {
+        expect(screen.getByText('HubSpot Pricing')).toBeInTheDocument();
+      });
+      
+      // Check that sidebar only has one run button visible (HubSpot Pricing)
+      const sidebar = document.querySelector('aside');
+      expect(sidebar).toBeInTheDocument();
+      const runButtons = sidebar?.querySelectorAll('button[class*="rounded-lg"]');
+      expect(runButtons).toHaveLength(1);
     });
 
     it('shows all runs when search is cleared', async () => {
@@ -311,14 +319,14 @@ describe('HomePage Component', () => {
       
       // Wait for runs to load
       await waitFor(() => {
-        expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Slack Sales Test')[0]).toBeInTheDocument();
       });
       
       const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'Slack' } });
       fireEvent.change(searchInput, { target: { value: '' } });
       
-      expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+      expect(screen.getAllByText('Slack Sales Test')[0]).toBeInTheDocument();
       expect(screen.getByText('HubSpot Pricing')).toBeInTheDocument();
     });
 
@@ -327,13 +335,13 @@ describe('HomePage Component', () => {
       
       // Wait for runs to load
       await waitFor(() => {
-        expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Slack Sales Test')[0]).toBeInTheDocument();
       });
       
       const searchInput = screen.getByPlaceholderText('Search runs…');
       fireEvent.change(searchInput, { target: { value: 'SLACK' } });
       
-      expect(screen.getByText('Slack Sales Test')).toBeInTheDocument();
+      expect(screen.getAllByText('Slack Sales Test')[0]).toBeInTheDocument();
     });
   });
 
@@ -377,7 +385,7 @@ describe('HomePage Component', () => {
       render(<HomePage />);
       
       await waitFor(() => {
-        expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+        expect(screen.getAllByText('Test Run 1')[0]).toBeInTheDocument();
       });
       expect(screen.getByText('Sites Evaluated')).toBeInTheDocument();
     });
@@ -386,7 +394,7 @@ describe('HomePage Component', () => {
       render(<HomePage />);
       
       await waitFor(() => {
-        expect(screen.getByText('Test Run 1')).toBeInTheDocument();
+        expect(screen.getAllByText('Test Run 1')[0]).toBeInTheDocument();
       });
       expect(screen.getByText('Can you show me the pricing or plans for this company?')).toBeInTheDocument();
       expect(screen.getByText(/^75$/)).toBeInTheDocument();
@@ -462,7 +470,7 @@ describe('HomePage Component', () => {
       fireEvent.click(artifactVideoButton!);
       
       expect(screen.getByText('Recorded Session')).toBeInTheDocument();
-      const video = screen.getByRole('generic', { name: '' });
+      const video = document.querySelector('video');
       expect(video).toBeInTheDocument();
     });
 

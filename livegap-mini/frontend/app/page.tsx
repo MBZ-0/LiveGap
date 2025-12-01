@@ -144,7 +144,8 @@ export default function HomePage() {
   const filteredRuns = testRuns.filter(r => {
     if (!search.trim()) return true;
     const q = search.toLowerCase();
-    return r.name.toLowerCase().includes(q) || GOAL_SHORT[r.goal].toLowerCase().includes(q);
+    const goalText = GOAL_SHORT[r.goal] || '';
+    return r.name.toLowerCase().includes(q) || goalText.toLowerCase().includes(q);
   });
   function openVideo(url?: string | null) {
     if (url) setVideoUrl(url);
