@@ -1,25 +1,26 @@
-"""Local dev launcher ensuring Windows selector event loop before starting uvicorn.
+"""Local dev launcher ensuring Windows Proactor event loop before starting uvicorn.
 Usage:
   python run_dev.py            # starts with reload
   python run_dev.py --no-reload
 
-On Windows + Python >=3.12 Playwright may misbehave; prefer Python 3.11.
+On Windows Playwright requires Proactor event loop for subprocess support.
 """
 from __future__ import annotations
-import asyncio, sys, argparse
+import sys
+
+# CRITICAL: Set event loop policy BEFORE any asyncio imports
+if sys.platform == "win32":
+  import asyncio
+  asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+  print("[another.ai] Applied WindowsProactorEventLoopPolicy before uvicorn run.")
+
+import argparse
 import uvicorn
 
 def main():
   parser = argparse.ArgumentParser()
   parser.add_argument("--no-reload", action="store_true", help="Disable auto-reload (avoids multiprocessing spawn issues)")
   args = parser.parse_args()
-
-  if sys.platform == "win32":
-    try:
-      asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-      print("[another.ai] Applied WindowsSelectorEventLoopPolicy before uvicorn run.")
-    except Exception as e:
-      print(f"[another.ai] Failed to set selector loop policy: {e!r}")
 
   config = uvicorn.Config(
     "app.main:app",

@@ -15,10 +15,21 @@ from .agent import run_llm_agent_on_site
 from .runner import Site, load_sites  # dataclass + loader
 from .runs_store import create_run, get_run, update_run_status, to_dict, get_all_runs
 
-# Windows asyncio subprocess fix for Playwright (requires selector loop for subprocesses).
+# Windows asyncio subprocess fix for Playwright: ensure Proactor policy and loop.
 if sys.platform == "win32":
     try:
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        # If an existing loop is a Selector loop, replace it with a Proactor loop
+        try:
+            loop = asyncio.get_event_loop()
+            if type(loop).__name__ != "_WindowsProactorEventLoop":
+                loop.close()
+                new_loop = asyncio.ProactorEventLoop()
+                asyncio.set_event_loop(new_loop)
+        except Exception:
+            # No existing loop; create a Proactor loop explicitly
+            new_loop = asyncio.ProactorEventLoop()
+            asyncio.set_event_loop(new_loop)
     except Exception:
         pass
 

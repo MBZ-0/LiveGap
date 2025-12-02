@@ -12,6 +12,17 @@ from .llm import plan_next_action, classify_success
 from .url_matcher import normalize_url
 from .s3_storage import upload_video_to_s3
 
+# Ensure Proactor loop on Windows before Playwright spawns subprocesses
+if os.name == "nt":
+    try:
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+        loop = asyncio.get_event_loop()
+        if type(loop).__name__ != "_WindowsProactorEventLoop":
+            loop.close()
+            asyncio.set_event_loop(asyncio.ProactorEventLoop())
+    except Exception:
+        pass
+
 
 def render_report(site: Site, goal: Goal, result: SiteResult) -> str:
     """Produce a human-readable markdown narrative of the agent's attempt."""
